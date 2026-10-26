@@ -1,0 +1,16 @@
+{
+  "name": "ship-site",
+  "description": "ship-site: a release-readiness skill for Next.js marketing sites.",
+  "owner": {
+    "name": "Saroj Shahi",
+    "url": "https://github.com/saroj-shahi"
+  },
+  "plugins": [
+    {
+      "name": "ship-site",
+      "source": "./",
+      "description": "Release-readiness orchestrator for Next.js marketing sites: parallel audits, real-browser verification, build gate, gated release flow, and post-deploy smoke tests with a go/no-go report.",
+      "version": "1.0.0"
+    }
+  ]
+}

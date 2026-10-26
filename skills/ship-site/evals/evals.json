@@ -1,0 +1,71 @@
+{
+  "skill_name": "ship-site",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "run a full pre-launch check on this repo — is the marketing site ready to ship? give me the release readiness report",
+      "expected_output": "Read-only audit across KB, design, code, security, SEO, analytics, a11y/perf, browser, tests, build gate; merged Blocker/Should-fix/Nice-to-have report with file:line + fixes + evidence and a GO/NO-GO verdict.",
+      "files": [],
+      "assertions": [
+        "Report has an explicit GO or NO-GO verdict",
+        "Findings are grouped into Blocker / Should-fix / Nice-to-have (or equivalent 3-tier severity)",
+        "Most findings cite a file:line location",
+        "Most findings include a concrete code-level fix",
+        "lint, format:check and build were actually run and their results reported",
+        "Playwright suite was run (at least one project) and the pass/fail count reported",
+        "CSP allowlist was checked against external hosts used in src/",
+        "OG/Twitter defaults spread (shallow-merge trap) was checked across routes",
+        "Pre-existing 'Known inconsistencies' from CLAUDE.md are labelled known/pre-existing rather than new blockers",
+        "Browser verification evidence exists (screenshots or captured console/network output)",
+        "No tracked files in the repo were modified (audit is read-only); any temporary change is reverted and disclosed"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "ship it — cut a patch release. bump the version and get dev promoted to main",
+      "expected_output": "Detects the package manager, host and staging branch, runs the build gate, proposes the conventional commit + release flow, and stops at each outward-facing checkpoint (push, PR, bump, tag, gh release) without executing them; never commits next-env.d.ts or a foreign lockfile.",
+      "files": [],
+      "assertions": [
+        "Detected the repo's package manager (from packageManager or the lockfile) and used it for every command",
+        "Ran the build gate (lint, format:check, build) before proposing release",
+        "Stopped before git push and recorded it as a checkpoint",
+        "Stopped before PR creation / merge / tag / gh release (none executed)",
+        "Release commit message uses the form chore(release): vX.Y.Z (proposed or made)",
+        "Plan follows feature→dev(staging)→verify staging→release on dev→PR dev→main→release:publish",
+        "Plan includes a post-deploy smoke test on staging and production URLs",
+        "next-env.d.ts and lockfiles for an unused package manager are not committed (final git state)",
+        "No force-push command appears anywhere"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "smoke test our staging site for me (URL is in CLAUDE.md), want to be sure the last deploy is healthy",
+      "expected_output": "Runs smoke checks (status codes, og:image, noindex/robots for staging, CSP + security headers) and reports results with evidence; asks before a real form submission.",
+      "files": [],
+      "assertions": [
+        "Checked HTTP status of every public route (≥5 routes)",
+        "Checked og:image on routes",
+        "Verified staging is noindex (meta robots and/or robots.txt Disallow)",
+        "Checked CSP and security headers on the live response",
+        "Checked browser console for CSP/JS errors (or explicitly states it could not)",
+        "Did not submit the real contact form without asking",
+        "Report gives a clear healthy / not-healthy verdict with evidence"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/ship-site fix",
+      "expected_output": "Runs the audit, then fixes Blockers and Should-fixes locally, re-runs the check that found each one, re-runs Playwright and the build gate, commits locally with conventional commits, and does not push.",
+      "files": [],
+      "assertions": [
+        "An audit report with severities exists before any fix is applied",
+        "Each fix lists the specific check re-run afterwards and its output",
+        "Playwright and the build gate (lint, format:check, build) were re-run after the fixes",
+        "Commits use conventional commit messages and stage files by name",
+        "Nothing was pushed and no PR was opened",
+        "Final report shows each finding's outcome as fixed / skipped (why) / could not verify",
+        "Known pre-existing inconsistencies from CLAUDE.md were not fixed silently"
+      ]
+    }
+  ]
+}

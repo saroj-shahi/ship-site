@@ -1,0 +1,13 @@
+{
+  "name": "ship-site",
+  "version": "1.0.0",
+  "description": "Release-readiness orchestrator for Next.js marketing sites: parallel audits, real-browser verification, build gate, gated release flow, and post-deploy smoke tests with a go/no-go report.",
+  "author": {
+    "name": "Saroj Shahi",
+    "url": "https://github.com/saroj-shahi"
+  },
+  "homepage": "https://github.com/saroj-shahi/ship-site",
+  "repository": "https://github.com/saroj-shahi/ship-site",
+  "license": "MIT",
+  "keywords": ["nextjs", "release", "deployment", "audit", "seo", "accessibility", "security", "smoke-test", "playwright"]
+}
