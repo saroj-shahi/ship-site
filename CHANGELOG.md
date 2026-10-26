@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `SECURITY.md` with private vulnerability reporting.
+- Issue forms for bug reports and false positives or missed issues.
+- Dependabot updates for GitHub Actions.
+
 ## [1.0.0] - 2026-10-26
 
 First public release.
