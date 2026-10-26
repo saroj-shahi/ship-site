@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in the skill or a script didn't work as documented
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Skill (SKILL.md / references)
+        - smoke_test.py
+        - csp_hosts.py
+        - Plugin install / packaging
+    validations:
+      required: true
+  - type: input
+    id: mode
+    attributes:
+      label: Mode or command
+      placeholder: "/ship-site audit, smoke_test.py --env staging, ..."
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the relevant part of the report or the script output.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A robots.txt, a next.config snippet, response headers, or steps. Remove secrets and private hosts.
+  - type: input
+    id: stack
+    attributes:
+      label: Stack
+      placeholder: "Next.js 15.x, pnpm, Vercel"
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "ship-site 1.0.0, Claude Code 2.x, Python 3.12"
+    validations:
+      required: true

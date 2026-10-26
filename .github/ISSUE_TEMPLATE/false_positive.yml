@@ -1,0 +1,43 @@
+name: False positive or missed issue
+description: A check flagged something that's fine, or missed a real problem
+labels: [bug]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - False positive (flagged, but not a problem)
+        - Missed issue (a real problem that wasn't flagged)
+        - Wrong severity
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Audit area
+      options:
+        - Security / CSP
+        - SEO
+        - Analytics
+        - Accessibility / performance
+        - Browser verification
+        - Release flow
+        - Smoke test
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: The finding, or what should have been found
+      description: Paste the finding as reported (severity, file:line, evidence), or describe the problem that was missed.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it's wrong
+      description: The evidence that it's fine, or how the problem showed up. Remove secrets and private hosts.
+    validations:
+      required: true
