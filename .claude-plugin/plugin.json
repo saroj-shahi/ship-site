@@ -1,6 +1,6 @@
 {
   "name": "ship-site",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Release-readiness orchestrator for Next.js marketing sites: parallel audits, real-browser verification, build gate, gated release flow, and post-deploy smoke tests with a go/no-go report.",
   "author": {
     "name": "Saroj Shahi",
