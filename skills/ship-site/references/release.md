@@ -10,6 +10,27 @@ git status --short
 ```
 Unstage `next-env.d.ts`, `package-lock.json` (in a yarn/pnpm repo), `.env*`, `test-results/`, `playwright-report/`, `.next/`. Stage files by name, not `git add -A`.
 
+## Whose workflow wins
+
+The flow below is the default. The repo's documented workflow (AGENTS.md, CLAUDE.md, CONTRIBUTING) and the user's stated rules override it, and they change mid-project. Real examples: "commit straight to main, no branches, push only when I ask" during a prototype, then "branch from `develop`, draft PR, don't touch main" once a dev team joined. Read the current rule each run; don't carry over last release's habit.
+
+- **Commit, push and PR are separate approvals.** "Commit" doesn't mean push. "Push" doesn't mean open a PR. "Open a PR" can mean a draft.
+- **Trunk-based repos** (everything on `main`, no PRs): the release is gate → ⏸ commit → ⏸ push → wait for the production deploy → ⏸ tag → smoke. Say plainly that there's no staging step, and smoke-test production straight after the deploy.
+- **Base branch names vary:** `develop`, `dev`, `staging`. Use the one step 0 found. "Sync with develop" means rebase or merge per the repo's history, and a rebased branch needs a force-push. That's the one force-push a user may ask for: use `--force-with-lease`, on their own feature branch only, never on a shared branch, and ask first.
+- **Branch names** follow the repo's convention (`feat/…`, `fix/…`, `chore/…`) and describe the change. A branch whose name no longer matches its contents is worth a one-line note before the PR.
+
+## Git host
+
+Detect from `git remote get-url origin`:
+
+| Remote | PRs and checks |
+|---|---|
+| `github.com` | `gh pr create/view/merge`, `gh run list` for CI |
+| `bitbucket.org` | No `gh`. Open the PR in the browser (`https://bitbucket.org/<ws>/<repo>/pull-requests/new?source=<branch>&dest=<base>`) or via the Bitbucket API if the user has an app password set up. CI is Bitbucket Pipelines (`bitbucket-pipelines.yml`). Ask the user to merge in the UI |
+| `gitlab.com` / other | `glab` if installed, else the web UI |
+
+When the remote moves (GitHub → Bitbucket at handover is common), check the docs, CI config, badges and PR templates still point at the right host, and that `main` and `develop` exist on the new remote with matching history before you push anything.
+
 ## Branch flow (dev = staging, main = production)
 
 The names are the common convention; use the repo's actual staging and production branches from step 0. No staging branch? See [Without a staging branch](#without-a-staging-branch).

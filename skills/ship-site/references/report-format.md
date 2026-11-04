@@ -59,7 +59,7 @@ Detected: yarn 1.22 · AWS Amplify · base `dev` · 11 routes · diff +420/−88
 ## Nice-to-have
 …
 
-## Known, pre-existing (from CLAUDE.md)
+## Known, pre-existing (from the repo's instructions file)
 - …
 
 ## What passed

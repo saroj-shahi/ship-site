@@ -66,6 +66,35 @@
         "Final report shows each finding's outcome as fixed / skipped (why) / could not verify",
         "Known pre-existing inconsistencies from CLAUDE.md were not fixed silently"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "we're about to replace the client's live wordpress site with this next.js rebuild. pre-launch check please, and make sure we don't lose their seo",
+      "expected_output": "Detects a replatform, runs the launch-content scan with the old host, checks old URLs resolve on staging via --legacy-urls, compares carried-over titles/descriptions/schema for ranking pages, and reports placeholder copy, default favicon, missing error pages and form consent as findings without inventing replacement copy.",
+      "files": [],
+      "assertions": [
+        "Step-0 summary states this is a replatform and names the old host",
+        "launch_content.py was run (with --legacy-host) and each hit was triaged as rendered or not",
+        "Old URLs were checked against the new site (smoke_test.py --legacy-urls or equivalent), and redirects to the home page are reported as failures",
+        "Titles/descriptions of pages that rank on the old site were compared with the new ones",
+        "Placeholder or unconfirmed content is reported as a finding, and no replacement copy, bio, metric or certification was invented",
+        "Favicon/app icons, OG image, 404/error pages and form consent were each checked",
+        "Report has an explicit GO or NO-GO verdict"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "continue the release from yesterday, I ran out of usage halfway",
+      "expected_output": "Finds the latest unfinished run's state.json, re-checks git/PR/tag state against it, summarizes where the release stands, and continues from the recorded next step, asking again for any outward-facing action not already executed.",
+      "files": [],
+      "assertions": [
+        "Located the previous run's state.json (or said clearly that none exists)",
+        "Re-checked current git state, PR state and tag existence before continuing",
+        "Told the user in a short summary which steps are done and what is next",
+        "Did not re-run outward-facing actions already recorded as done",
+        "Asked again before any push, PR, merge, bump or tag not yet executed",
+        "Re-ran the build gate if HEAD differs from the recorded head_sha"
+      ]
     }
   ]
 }

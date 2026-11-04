@@ -143,6 +143,58 @@ class CspHostsCli(unittest.TestCase):
         self.assertEqual(run("csp_hosts.py", str(self.root)).returncode, 2)
 
 
+class LaunchContentCli(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        files = {
+            "app/page.tsx": ('export const metadata = { title: "Create Next App" };\n'
+                             '<p>[TBD: sample content, replace before launch]</p>\n'
+                             '<input placeholder="Jane Doe" />\n'),
+            "content/team.json": '{"photo": "https://www.old-site.com/wp-content/uploads/a.png"}\n',
+            "content/legal.md": "To confirm: data retention period\n",
+            "public/next.svg": "<svg/>",
+            "docs/plan.md": "TBD lorem ipsum\n",
+            "app/page.test.tsx": "lorem ipsum\n",
+        }
+        for rel, text in files.items():
+            (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.root / rel).write_text(text)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def findings(self, *args: str) -> tuple[int, list[dict]]:
+        res = run("launch_content.py", str(self.root), "--json", *args)
+        return res.returncode, json.loads(res.stdout)["findings"]
+
+    def test_reports_each_kind_and_skips_non_shipping(self):
+        code, found = self.findings("--legacy-host", "old-site.com")
+        self.assertEqual(code, 1)
+        got = {(f["kind"], f["file"], f["line"]) for f in found}
+        self.assertEqual(got, {
+            ("scaffold", "app/page.tsx", 1),
+            ("placeholder", "app/page.tsx", 2),
+            ("legacy-link", "content/team.json", 1),
+            ("placeholder", "content/legal.md", 1),
+            ("scaffold", "public/next.svg", 0),
+        })
+
+    def test_input_placeholder_attribute_is_not_copy(self):
+        _, found = self.findings()
+        self.assertFalse([f for f in found if f["line"] == 3])
+
+    def test_wordpress_path_flagged_without_legacy_host(self):
+        _, found = self.findings()
+        self.assertIn("WordPress upload path", {f["match"] for f in found})
+
+    def test_clean_repo_exits_0(self):
+        clean = self.root / "clean"
+        (clean / "app").mkdir(parents=True)
+        (clean / "app" / "page.tsx").write_text("<h1>Modernize your contact center</h1>\n")
+        self.assertEqual(run("launch_content.py", str(clean)).returncode, 0)
+
+
 class FakeSite(http.server.BaseHTTPRequestHandler):
     """A tiny production-like site; `staging = True` serves the noindex variant."""
     staging = False
@@ -174,6 +226,16 @@ class FakeSite(http.server.BaseHTTPRequestHandler):
             "/og.png": ("image/png", "png"),
             "/_next/static/chunks/app.js": ("application/javascript", "1"),
         }
+        redirects = {"/old-about/": "/old-about", "/old-about": "/about", "/old-gone": "/"}
+        if self.path in redirects:
+            self.send_response(301)
+            self.send_header("Location", redirects[self.path])
+            self.end_headers()
+            return
+        routes["/old-sitemap.xml"] = ("application/xml", f"<sitemapindex><sitemap><loc>http://{host}/old-sitemap-1.xml"
+                                      f"</loc></sitemap></sitemapindex>")
+        routes["/old-sitemap-1.xml"] = ("application/xml", f"<urlset><url><loc>http://{host}/old-about</loc></url>"
+                                        f"<url><loc>http://{host}/about</loc></url></urlset>")
         ctype, body = routes.get(self.path, ("text/html", "not found"))
         self.send_response(200 if self.path in routes else 404)
         self.send_header("Content-Type", ctype)
@@ -230,10 +292,111 @@ class SmokeTestCli(unittest.TestCase):
         res = run("smoke_test.py", f"http://127.0.0.1:{port}", "--env", "production", "--timeout", "3")
         self.assertEqual(res.returncode, 2)
 
+    def test_legacy_sitemap_index_redirects_pass(self):
+        base = self.serve(staging=False)
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "smoke.json"
+            res = run("smoke_test.py", base, "--env", "production", "--routes", "/",
+                      "--legacy-urls", f"{base}/old-sitemap.xml", "--json", str(out))
+            self.assertEqual(res.returncode, 0, res.stdout)
+            legacy = [r for r in json.loads(out.read_text())["results"] if r["check"] == "legacy URL resolves"]
+        self.assertEqual(sorted(r["target"] for r in legacy), ["/about", "/old-about"])
+
+    def test_legacy_home_dump_and_404_fail(self):
+        base = self.serve(staging=False)
+        with tempfile.TemporaryDirectory() as d:
+            urls = Path(d) / "legacy.txt"
+            urls.write_text("# old WordPress paths\n/old-about/\n/old-gone\nhttps://old.example.com/old-missing\n")
+            res = run("smoke_test.py", base, "--env", "production", "--routes", "/", "--legacy-urls", str(urls))
+        self.assertEqual(res.returncode, 1)
+        self.assertRegex(res.stdout, r"PASS\s+legacy URL resolves\s+/old-about/ .*chain")
+        self.assertRegex(res.stdout, r"FAIL\s+legacy URL resolves\s+/old-gone .*soft 404")
+        self.assertRegex(res.stdout, r"FAIL\s+legacy URL resolves\s+/old-missing .*status=404")
+
     def test_rejects_relative_url(self):
         res = run("smoke_test.py", "example.com", "--env", "production")
         self.assertEqual(res.returncode, 2)
         self.assertIn("absolute http(s) URL", res.stderr)
+
+
+REPO = SCRIPTS.parent.parent.parent
+SKILL_DIR = SCRIPTS.parent
+
+
+class Installer(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name) / "home"
+        self.home.mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def install(self, *args: str) -> subprocess.CompletedProcess:
+        env = {"HOME": str(self.home), "PATH": "/usr/bin:/bin", "USERPROFILE": str(self.home)}
+        return subprocess.run([sys.executable, str(REPO / "install.py"), *args],
+                              capture_output=True, text=True, timeout=60, env=env)
+
+    def test_default_links_shared_folder_once(self):
+        res = self.install()
+        self.assertEqual(res.returncode, 0, res.stderr)
+        dest = self.home / ".agents" / "skills" / "ship-site"
+        self.assertTrue(dest.is_symlink())
+        self.assertEqual(dest.resolve(), SKILL_DIR.resolve())
+        self.assertIn("already linked", self.install().stdout)
+
+    def test_project_copy_for_copilot(self):
+        proj = Path(self.tmp.name) / "site"
+        proj.mkdir()
+        res = self.install("--project", str(proj), "--agent", "copilot", "--copy")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        dest = proj / ".github" / "skills" / "ship-site"
+        self.assertFalse(dest.is_symlink())
+        self.assertTrue((dest / "SKILL.md").is_file())
+        self.assertTrue((dest / "scripts" / "smoke_test.py").is_file())
+
+    def test_foreign_folder_left_alone_without_force(self):
+        dest = self.home / ".gemini" / "skills" / "ship-site"
+        dest.mkdir(parents=True)
+        (dest / "mine.txt").write_text("keep")
+        self.assertIn("left alone", self.install("--agent", "gemini").stdout)
+        self.assertIn("left alone", self.install("--agent", "gemini", "--uninstall").stdout)
+        self.assertTrue((dest / "mine.txt").is_file())
+
+    def test_warns_when_an_agent_would_see_two_copies(self):
+        res = self.install("--agent", "agents", "--agent", "claude")
+        self.assertRegex(res.stdout, r"warning: (copilot|opencode) reads ship-site from 2 folders")
+
+    def test_uninstall_removes_only_our_link(self):
+        self.install("--agent", "all")
+        res = self.install("--agent", "all", "--uninstall")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertFalse(list(self.home.rglob("ship-site")))
+
+
+class SkillPortability(unittest.TestCase):
+    """The SKILL.md must load in any Agent Skills host, not only Claude Code."""
+
+    def frontmatter(self) -> dict[str, str]:
+        text = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("---\n"))
+        block = text.split("---\n", 2)[1]
+        return dict(line.split(": ", 1) for line in block.strip().splitlines())
+
+    def test_frontmatter_keys_and_limits(self):
+        fm = self.frontmatter()
+        # Codex rejects keys outside this set; the Agent Skills spec caps description at 1024.
+        self.assertLessEqual(set(fm), {"name", "description", "license", "metadata", "allowed-tools"})
+        self.assertEqual(fm["name"], SKILL_DIR.name)
+        self.assertRegex(fm["name"], r"^[a-z0-9]+(-[a-z0-9]+)*$")
+        self.assertLessEqual(len(fm["description"]), 1024)
+        self.assertNotIn(": ", fm["description"], "a plain YAML scalar can't contain ': '")
+
+    def test_no_host_specific_substitutions(self):
+        for f in SKILL_DIR.rglob("*.md"):
+            text = f.read_text(encoding="utf-8")
+            for token in ("${CLAUDE_", "$CLAUDE_", "$ARGUMENTS", "${ARGUMENTS}"):
+                self.assertNotIn(token, text, f"{f.name} uses {token}, which other hosts leave literal")
 
 
 if __name__ == "__main__":

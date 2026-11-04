@@ -10,6 +10,7 @@ Usage:
   smoke_test.py https://example.com --env production --routes /,/about,/contact
   smoke_test.py https://example.com --env production --json out.json
   smoke_test.py https://staging.example.com --env staging --header "Authorization: Basic ..."
+  smoke_test.py https://staging.example.com --env staging --legacy-urls https://www.example.com/sitemap.xml
 
 Routes default to the site's sitemap.xml (production) or "/" plus any links found
 on the home page (staging, where sitemap is usually disallowed).
@@ -119,6 +120,46 @@ def discover_routes(base: str, env: str) -> list[str]:
     return sorted(paths)
 
 
+def legacy_paths(source: str, depth: int = 0) -> list[str]:
+    """Paths of the site being replaced, from a sitemap URL (index sitemaps are
+    followed, as WordPress/Yoast serve them) or a file with one path or URL per line."""
+    if source.startswith(("http://", "https://")):
+        status, _, body = fetch(source)
+        if status != 200:
+            raise SystemExit(f"--legacy-urls: {source} returned {status}")
+        locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", body)
+        if "<sitemapindex" in body and depth < 2:
+            return sorted({p for loc in locs for p in legacy_paths(loc, depth + 1)})
+        return sorted({urllib.parse.urlparse(u).path or "/" for u in locs})
+    with open(source) as f:
+        lines = [ln.split("#", 1)[0].strip() for ln in f]
+    return sorted({(urllib.parse.urlparse(ln).path or "/") if "://" in ln else ln for ln in lines if ln})
+
+
+def fetch_final(url: str):
+    """Follow redirects; return (status, final_path, hops)."""
+    hops = 0
+
+    class Count(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kw):
+            nonlocal hops
+            hops += 1
+            new = super().redirect_request(*args, **kw)
+            if new is not None and urllib.parse.urlparse(new.full_url).netloc != SITE_NETLOC:
+                drop = {h.lower() for h in EXTRA_HEADERS}  # never forward credentials off-site
+                new.headers = {k: v for k, v in new.headers.items() if k.lower() not in drop}
+            return new
+
+    opener = urllib.request.build_opener(Count, urllib.request.HTTPSHandler(context=CTX))
+    try:
+        with opener.open(urllib.request.Request(url, headers=request_headers(url)), timeout=TIMEOUT) as r:
+            return r.status, urllib.parse.urlparse(r.geturl()).path or "/", hops
+    except urllib.error.HTTPError as e:
+        return e.code, urllib.parse.urlparse(e.geturl() or url).path or "/", hops
+    except Exception as e:
+        return 0, str(e)[:80], hops
+
+
 def parse_header(raw: str) -> tuple[str, str]:
     name, sep, value = raw.partition(":")
     if not sep or not name.strip():
@@ -138,6 +179,9 @@ def main() -> int:
     ap.add_argument("--header", action="append", type=parse_header, default=[], metavar="'NAME: VALUE'",
                     help="extra request header for the site under test (repeatable), e.g. basic auth on staging")
     ap.add_argument("--timeout", type=int, default=20, help="per-request timeout in seconds (default 20)")
+    ap.add_argument("--legacy-urls", metavar="SITEMAP_URL|FILE",
+                    help="URLs of the site being replaced (its sitemap.xml, or a file of paths); each must "
+                         "resolve on this site to a 200, directly or by redirect, and not by dumping to the home page")
     a = ap.parse_args()
 
     base = a.base_url.rstrip("/") + "/"
@@ -232,6 +276,19 @@ def main() -> int:
             record("canonical present (info)", True, can.group(1) if can else "MISSING — pass --canonical-host to enforce", path)
         h1s = len(re.findall(r"<h1\b", html, re.I))
         record("single h1 (SSR html)", h1s == 1, f"h1 count={h1s}", path)
+
+    # Replatform: every URL the old site had indexed must still land on real content.
+    if a.legacy_urls:
+        for path in legacy_paths(a.legacy_urls):
+            status, final, hops = fetch_final(urllib.parse.urljoin(base, path.lstrip("/")))
+            to_home = final == "/" and path.rstrip("/") != ""
+            ok = status == 200 and not to_home
+            detail = f"status={status}" + (f" via {hops} redirect(s) -> {final}" if hops else "")
+            if to_home:
+                detail += " (redirects to home: a soft 404 for search engines)"
+            elif hops > 1:
+                detail += " (chain: point the old URL straight at the target)"
+            record("legacy URL resolves", ok, detail, path)
 
     for og in sorted(og_images):
         status, headers, _ = fetch(og, method="HEAD")

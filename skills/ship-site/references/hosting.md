@@ -4,7 +4,7 @@ Read only the section for the host detected in step 0.
 
 ## AWS Amplify (`amplify.yml`)
 
-- Branch → environment mapping is set in the Amplify console; conventionally `dev` → staging, `main` → production. Confirm URLs from CLAUDE.md.
+- Branch → environment mapping is set in the Amplify console; conventionally `dev` → staging, `main` → production. Confirm URLs from the repo's instructions file (AGENTS.md, CLAUDE.md, …).
 - Build env: `AWS_BRANCH` is set on every build → use it for preview detection (`AWS_BRANCH !== "main"` ⇒ noindex).
 - `amplify.yml` should run `<pm> install --frozen-lockfile` (yarn) / `npm ci` so the deployed tree matches the lockfile.
 - **SSR has no static egress IP.** Any fix that relies on allowlisting the site's outbound IP at an upstream (firewall, nginx allow, a CMS admin host) will not work. Use a public API host with token auth instead.
@@ -26,6 +26,16 @@ Read only the section for the host detected in step 0.
 - Deploy previews at `deploy-preview-<n>--<site>.netlify.app`; branch deploys at `<branch>--<site>.netlify.app`.
 - Headers can come from `netlify.toml` `[[headers]]` or `_headers` and may merge with Next's — verify live.
 - `netlify status` / `netlify api listSiteDeploys` for deploy state if the CLI is logged in.
+
+## Cloudflare Workers via OpenNext (`wrangler.toml` / `wrangler.jsonc` / `open-next.config.ts`)
+
+- The build command must be `opennextjs-cloudflare build` (often a `<pm> run build:cf` or `preview`/`deploy` script), **not** plain `next build`. A dashboard set to `npm run build` then `npx wrangler deploy` builds fine and then fails with "Could not find compiled Open Next config", because `.open-next/` was never generated. The fix is in the Workers Builds settings, not the code: tell the user the exact build and deploy commands to set.
+- Preview detection: an env var set per environment in `wrangler` config (`[env.staging] vars = { APP_ENV = "staging" }`). Check that the noindex signal reads it.
+- `*.workers.dev` staging URLs: smoke-test sub-routes, not only `/`. A misconfigured assets binding or `run_worker_first` serves the home page and 404s every nested route.
+- Node APIs: the worker runs with `nodejs_compat`. Server code using `fs`, native modules or long-running work fails at request time, not at build. Exercise every API route on staging.
+- Headers: `next.config` headers apply via OpenNext. A `_headers` file in the assets dir applies to static assets only. Verify live.
+- Deploy status: `npx wrangler deployments list` if logged in, else the smoke script's `--expect-build`.
+- Add `.open-next/` and `.wrangler/` to `.gitignore`.
 
 ## Unknown host
 

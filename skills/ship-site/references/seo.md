@@ -49,7 +49,7 @@ Per route (check in the running page, not source — components compose):
 ```
 
 - Exactly one `h1`.
-- No level skips (h1 → h3 with no h2). Known gaps listed in CLAUDE.md "Known inconsistencies" are reported as known, not new.
+- No level skips (h1 → h3 with no h2). Known gaps listed under "Known inconsistencies" in the repo's instructions file are reported as known, not new.
 
 ## 7. Alt text
 

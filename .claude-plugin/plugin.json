@@ -9,5 +9,21 @@
   "homepage": "https://github.com/saroj-shahi/ship-site",
   "repository": "https://github.com/saroj-shahi/ship-site",
   "license": "MIT",
-  "keywords": ["nextjs", "release", "deployment", "audit", "seo", "accessibility", "security", "smoke-test", "playwright"]
+  "keywords": [
+    "nextjs",
+    "release",
+    "deployment",
+    "audit",
+    "seo",
+    "accessibility",
+    "security",
+    "smoke-test",
+    "playwright",
+    "agent-skills",
+    "codex",
+    "gemini-cli",
+    "cursor",
+    "copilot",
+    "opencode"
+  ]
 }
