@@ -6,8 +6,8 @@ The browser is where the silent failures show up: CSP blocks, missing og tags fr
 
 Pick the first that works and say which in the step-0 summary:
 
-1. **Built-in preview/browser pane** (e.g. the Claude desktop app's preview tools). If it starts servers from `.claude/launch.json` and that file is missing, create it (name `dev`, `runtimeExecutable` = the package manager, `runtimeArgs` = `["run","dev"]` / `["dev"]`, port 3000) and tell the user you added it — it's a local config file, not part of the release.
-2. **Browser MCP** (Chrome DevTools MCP, Playwright MCP) against a dev server you start in the background (`<pm> dev`), so it doesn't block the session.
+1. **The host's built-in browser**: a preview pane (Claude desktop app, Cursor, VS Code's Simple Browser with Copilot) or a browser tool the agent ships with. If it starts servers from a launch config (e.g. `.claude/launch.json`) and that file is missing, create it (name `dev`, `runtimeExecutable` = the package manager, `runtimeArgs` = `["run","dev"]` / `["dev"]`, port 3000) and tell the user you added it — it's a local config file, not part of the release.
+2. **Browser MCP server** (Chrome DevTools MCP, Playwright MCP), which most agents can load, against a dev server you start in the background (`<pm> dev`), so it doesn't block the session.
 3. **Playwright script** from the run folder (`npx playwright test <file>` with a `webServer` block, or `chromium.launch()` in a node script). A webapp-testing skill, if installed, wraps this.
 
 The tool names below are generic — map them to whatever your browser tooling calls them (console messages, network requests, evaluate script, screenshot, resize).
@@ -20,7 +20,7 @@ The tool names below are generic — map them to whatever your browser tooling c
    - `Hydration` / `did not match` → SSR/CSR mismatch
    - `404` / `Failed to load resource`
 3. Read network requests — any 4xx/5xx, any request to a host not in the CSP, oversized images (>500KB).
-4. Scroll to the bottom (triggers lazy content and reveal animations), check nothing stays invisible.
+4. Scroll to the bottom (triggers lazy content and reveal animations), check nothing stays invisible. Embedded preview panes may never fire `IntersectionObserver` callbacks, so a section stuck at `opacity: 0` there proves nothing either way. Re-check in Playwright (scroll each section into view, then read computed opacity) before calling it a bug or a pass. Content must also be visible with JS disabled and under `prefers-reduced-motion: reduce`. A reveal that hides content until JS runs is a Blocker if the observer can fail.
 5. Evaluate in the page: heading outline, images without alt, `document.querySelector('meta[property="og:image"]')?.content`, `meta[name=robots]`.
 6. Screenshot → save to `<run>/screenshots/<route-slug>-<desktop|mobile>.png`. Screenshots are the evidence for "looks right" claims.
 

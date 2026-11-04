@@ -6,7 +6,7 @@ Thanks for helping improve ship-site. Issues and pull requests are welcome.
 
 Open an issue with:
 
-- the mode you ran (`audit`, `fix`, `release`, `smoke`) and your Claude Code version
+- the mode you ran (`audit`, `fix`, `release`, `smoke`) the agent and its version (Claude Code, Codex, Gemini CLI, Cursor, Copilot, OpenCode…)
 - the stack: Next.js version, package manager, host
 - what the skill did vs what you expected, ideally with the relevant part of the report
 
@@ -37,10 +37,11 @@ For a false positive or a missed issue in a script, a minimal reproduction (a ro
 - **Every check needs a severity rule** (Blocker / Should-fix / Nice-to-have) and a way to verify it with evidence.
 - **Don't add new outward-facing actions** without a stop-and-ask checkpoint.
 - **Keep examples generic** (`example.com`), with no real company hosts or component names.
+- **Stay host-neutral.** The skill runs in many agents. Name tools by role ("a browser tool", "a code-review skill"), not by one host's tool name. Don't use host-only substitutions such as `${CLAUDE_PLUGIN_ROOT}` or `$ARGUMENTS` (other hosts leave them literal; use `SKILL_DIR`). Keep frontmatter to `name` and `description` (≤ 1024 chars, no `: ` in the plain scalar). `tests/` enforces these.
 
 ## Testing the skill itself
 
-Script tests don't exercise the orchestration. For a behaviour change in `SKILL.md` or a reference file, run the prompts in `skills/ship-site/evals/evals.json` against a real Next.js repo, with and without your change, using the `skill-creator` eval loop. Summarize the difference in the PR.
+Script tests don't exercise the orchestration. For a behaviour change in `SKILL.md` or a reference file, run the prompts in `skills/ship-site/evals/evals.json` against a real Next.js repo, with and without your change, using the `skill-creator` eval loop. Summarize the difference in the PR. If the change touches host-specific behaviour (approvals, delegation, browser tooling), try at least one non-Claude agent too.
 
 ## Releasing (maintainers)
 

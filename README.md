@@ -2,9 +2,9 @@
 
 [![tests](https://github.com/saroj-shahi/ship-site/actions/workflows/ci.yml/badge.svg)](https://github.com/saroj-shahi/ship-site/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-d97757)](https://docs.claude.com/en/docs/claude-code/skills)
+[![Agent Skill](https://img.shields.io/badge/Agent%20Skill-SKILL.md-d97757)](#install)
 
-A [Claude Code](https://docs.claude.com/en/docs/claude-code) skill that takes a Next.js marketing site from "feature done" to "released in production" as one checkpointed pipeline, and finishes with a **GO / NO-GO** report where every claim carries evidence.
+An [Agent Skill](#install) for Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, OpenCode and other agents that load `SKILL.md` skills. It takes a Next.js marketing site from "feature done" to "released in production" as one checkpointed pipeline, and finishes with a **GO / NO-GO** report where every claim carries evidence.
 
 ```
 knowledge base → parallel audits → real-browser proof → tests → build gate → release → smoke test
@@ -46,7 +46,47 @@ Findings are ranked **Blocker / Should-fix / Nice-to-have**, each with `file:lin
 
 ## Install
 
-### As a plugin (recommended)
+ship-site is a plain skill folder (`skills/ship-site/`: `SKILL.md`, references and stdlib Python scripts), so it runs in any agent that supports skills.
+
+### Codex, Gemini CLI, Cursor, Copilot, OpenCode and others
+
+Clone the repo and run the installer (Python 3.9+, no dependencies):
+
+```bash
+git clone https://github.com/saroj-shahi/ship-site.git
+```
+
+```bash
+python3 ship-site/install.py
+```
+
+By default this links the skill into `~/.agents/skills/`, the shared folder most agents read. One copy there avoids the skill showing up twice in agents that read several folders. To target a specific agent's own folder, or to install into one project for the whole team:
+
+```bash
+python3 ship-site/install.py --agent gemini --agent cursor
+```
+
+```bash
+python3 ship-site/install.py --project path/to/site --agent copilot --copy
+```
+
+| Agent | `--agent` | User folder | Project folder |
+|---|---|---|---|
+| Shared (Codex, Gemini CLI, Cursor, Copilot, OpenCode, Amp…) | `agents` (default) | `~/.agents/skills` | `.agents/skills` |
+| Codex | `codex` | `~/.agents/skills` | `.agents/skills` |
+| Gemini CLI | `gemini` | `~/.gemini/skills` | `.gemini/skills` |
+| Cursor | `cursor` | `~/.cursor/skills` | `.cursor/skills` |
+| GitHub Copilot | `copilot` | `~/.copilot/skills` | `.github/skills` |
+| OpenCode | `opencode` | `~/.config/opencode/skills` | `.opencode/skills` |
+| Claude Code | `claude` | `~/.claude/skills` | `.claude/skills` |
+
+The installer symlinks by default, so `git pull` updates the skill. It copies instead on Windows or with `--copy`. It never overwrites a folder it didn't create unless you pass `--force`. `--uninstall` removes only its own links. Older Codex builds read `~/.codex/skills`; if yours does, link the skill there by hand. Skill folders are still settling across vendors, so if the skill doesn't show up, check your agent's docs for its skills path or whether skills need enabling in its settings.
+
+Restart the agent, then ask for it by name ("run ship-site audit on this repo") or use `/ship-site audit` where slash commands are available. On hosts that can't stop for an approval (non-interactive or `exec` modes), the skill stops at the first outward-facing step and prints the pending command instead of running it.
+
+**Agents without skill support:** point the agent's instructions file (`AGENTS.md`, `.windsurfrules`, `CONVENTIONS.md`…) at it: *"For release-readiness, pre-launch checks, releases and smoke tests, read and follow `<path>/skills/ship-site/SKILL.md`."*
+
+### Claude Code plugin
 
 In Claude Code:
 
@@ -63,21 +103,7 @@ On older Claude Code versions, add the marketplace first:
 
 Update later with `/plugin update ship-site`.
 
-### As a personal skill
-
-Clone the repo and link the skill folder into your skills directory:
-
-```bash
-git clone https://github.com/saroj-shahi/ship-site.git
-```
-
-```bash
-ln -s "$PWD/ship-site/skills/ship-site" ~/.claude/skills/ship-site
-```
-
-To share it with a team through one repo, copy `skills/ship-site/` into that project's `.claude/skills/` instead.
-
-Restart Claude Code, then check that `ship-site` appears in the skill list.
+Or, without the plugin system: `python3 ship-site/install.py --agent claude` (or `--project <repo> --agent claude` to share it through a repo's `.claude/skills/`). Restart Claude Code, then check that `ship-site` appears in the skill list.
 
 ## Usage
 
@@ -89,7 +115,7 @@ Restart Claude Code, then check that `ship-site` appears in the skill list.
 | `/ship-site smoke [url]` | Post-deploy smoke test; uses the URL from your docs if you omit it | No | No |
 | `/ship-site` | The whole pipeline, pausing before anything outward-facing | Yes | Yes, gated |
 
-When installed as a plugin, the command may be namespaced as `/ship-site:ship-site`. You rarely need it, because the skill also triggers on plain requests:
+Slash commands depend on the agent: as a Claude Code plugin the command may be namespaced as `/ship-site:ship-site`, and agents without slash commands take the mode from the words ("run ship-site audit"). You rarely need either, because the skill also triggers on plain requests:
 
 > "is this ready to ship?" · "run a pre-launch check" · "cut a patch release" · "smoke test staging" · "promote dev to main"
 
@@ -116,13 +142,13 @@ The skill acts only after you say yes. It **stops and asks before each** of thes
 - a version bump, a git tag, `gh release`
 - a real form submission that would reach a human inbox
 
-One approval covers one action, so a yes to "push" is not a yes to "open the PR". It never force-pushes, never deletes a published tag or release, and never commits `next-env.d.ts`, a lockfile for a package manager the repo doesn't use, or `.env*` files. `audit` and `smoke` leave tracked files untouched, and run artifacts go to the session scratchpad or a git-excluded `.ship-site/` folder.
+One approval covers one action, so a yes to "push" is not a yes to "open the PR". It never force-pushes on its own (the one exception is `--force-with-lease` on your own feature branch, when you ask after a rebase), never deletes a published tag or release, and never commits `next-env.d.ts`, a lockfile for a package manager the repo doesn't use, or `.env*` files. `audit` and `smoke` leave tracked files untouched, and run artifacts go to the session scratchpad or a git-excluded `.ship-site/` folder.
 
 ## Requirements
 
 | Need | For |
 |---|---|
-| [Claude Code](https://docs.claude.com/en/docs/claude-code) | Running the skill |
+| A coding agent that loads Agent Skills (Claude Code, Codex, Gemini CLI, Cursor, Copilot, OpenCode…) and can run shell commands | Running the skill |
 | Python 3.9+ | The bundled scripts (stdlib only, nothing to install) |
 | A Next.js App Router site with `git` | Full coverage. Other frameworks get the framework-neutral steps: build gate, browser, a11y, release, smoke |
 | [`gh`](https://cli.github.com/), authenticated | PRs and GitHub releases in `release` mode |
@@ -145,9 +171,11 @@ ship-site orchestrates other skills when they're installed and falls back to its
 Step 0 runs in every mode and needs no configuration. It detects:
 
 - the **package manager**, from `packageManager` or the lockfile
-- the **host**: AWS Amplify (`amplify.yml`), Vercel (`vercel.json` or `.vercel/`), or Netlify (`netlify.toml`)
+- the **host**: AWS Amplify (`amplify.yml`), Vercel (`vercel.json` or `.vercel/`), Netlify (`netlify.toml`), or Cloudflare Workers via OpenNext (`wrangler.*`, `open-next.config.ts`)
+- the **git host** (GitHub, Bitbucket, other), which decides how PRs and CI are checked
 - the **staging branch** (`dev`, `develop`, or `staging`; otherwise the default branch) and the diff against it
 - every **route**, from `app/**/page.*`, with dynamic segments expanded
+- whether the release **replaces a live site**, which adds URL, redirect and SEO-parity checks
 
 It also reads `CLAUDE.md`, `AGENTS.md`, `README.md`, and `docs/`. Writing these down there makes it more accurate:
 
@@ -155,10 +183,13 @@ It also reads `CLAUDE.md`, `AGENTS.md`, `README.md`, and `docs/`. Writing these 
 - **Don'ts**: treated as hard rules
 - **Known inconsistencies**: reported as "known, pre-existing" rather than as new Blockers
 - **Release scripts** (`release:patch`, `release:publish`, …): used in place of the raw `npm version` / `git tag` / `gh release` commands
+- **Working rules** ("commit straight to main", "push only when I ask", "branch from develop"): these override the default release flow
+
+Each run keeps a `state.json` checkpoint, so `/ship-site resume` picks up a release that was cut off by a usage limit or a context reset.
 
 ## Standalone scripts
 
-Both scripts run without Claude and are handy in CI.
+All three scripts run without any agent and are handy in CI.
 
 ```bash
 # Post-deploy smoke test. Exit: 0 pass, 1 check failed, 2 unreachable.
@@ -174,7 +205,16 @@ python3 skills/ship-site/scripts/smoke_test.py https://www.example.com --env pro
 python3 skills/ship-site/scripts/csp_hosts.py path/to/site --json
 ```
 
-Run either one with `--help` for all flags. For a staging site behind basic auth, `smoke_test.py --header "Authorization: Basic …"` sends that header only to the site under test, and only over https.
+```bash
+# Placeholder copy, create-next-app leftovers, links back to the old site. Exit: 0 clean, 1 findings.
+python3 skills/ship-site/scripts/launch_content.py path/to/site --legacy-host www.old-site.com
+
+# Replatform: every URL in the old site's sitemap must resolve on the new one.
+python3 skills/ship-site/scripts/smoke_test.py https://staging.example.com --env staging \
+  --legacy-urls https://www.old-site.com/sitemap.xml
+```
+
+Run any of them with `--help` for all flags. For a staging site behind basic auth, `smoke_test.py --header "Authorization: Basic …"` sends that header only to the site under test, and only over https.
 
 ## Repository layout
 
@@ -182,19 +222,21 @@ Run either one with `--help` for all flags. For a staging site behind basic auth
 .claude-plugin/
   plugin.json             plugin manifest
   marketplace.json        single-plugin marketplace, so /plugin install works from this repo
+install.py                installs the skill for Codex, Gemini CLI, Cursor, Copilot, OpenCode, Claude Code
 skills/ship-site/
   SKILL.md                the orchestrator: modes, hard rules, steps 0–12
-  references/             checklists loaded on demand (security, seo, analytics,
-                          a11y-perf, browser, release, hosting, playwright-scaffold,
-                          report-format)
+  references/             checklists loaded on demand (launch-essentials, migration,
+                          security, seo, analytics, a11y-perf, browser, release,
+                          hosting, playwright-scaffold, report-format)
   scripts/
-    smoke_test.py         HTTP smoke checks
+    smoke_test.py         HTTP smoke checks, incl. legacy-URL parity
     csp_hosts.py          CSP vs source host diff
+    launch_content.py     placeholder / scaffold / legacy-link scan
   evals/evals.json        prompts + assertions for skill-creator's eval loop
 tests/                    unit + end-to-end tests for the scripts
 ```
 
-`SKILL.md` stays short. Claude loads a reference file only when it reaches that step, which keeps the context cost low.
+`SKILL.md` stays short. The agent loads a reference file only when it reaches that step, which keeps the context cost low.
 
 ## Development
 
@@ -216,7 +258,8 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Next.js App Router conventions run through the SEO and security checklists. Pages Router or non-Next sites get partial coverage, and the skill says so up front.
 - `csp_hosts.py` is a static heuristic. Hosts built at runtime or fetched inside SDKs won't show up, so the browser console in step 8 is the source of truth.
-- Hosting guidance covers AWS Amplify, Vercel, and Netlify. For any other host, the skill asks for your staging and production URLs and skips the host-specific checks.
+- `launch_content.py` matches patterns, not meaning. Treat each hit as a candidate and confirm it on the rendered page.
+- Hosting guidance covers AWS Amplify, Vercel, Netlify, and Cloudflare Workers (OpenNext). For any other host, the skill asks for your staging and production URLs and skips the host-specific checks.
 - It can't fix anything that lives outside the repo, such as GA admin event rules, host console headers, or DNS. It flags those for you instead.
 
 ## License
