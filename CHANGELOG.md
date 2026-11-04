@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-04
+
 ### Added
 
 - `SECURITY.md` with private vulnerability reporting.
@@ -49,4 +51,6 @@ First public release.
 - Organization-specific hosts and component names in references and evals were replaced with generic examples.
 - `smoke_test.py` parses robots.txt by user-agent group, so a `Disallow: /` for another bot no longer reads as production being blocked.
 
+[Unreleased]: https://github.com/saroj-shahi/ship-site/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/saroj-shahi/ship-site/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/saroj-shahi/ship-site/releases/tag/v1.0.0
