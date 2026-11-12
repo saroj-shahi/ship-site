@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `build_report.py`: merges each audit's findings JSON and `gates.json` into `report.md`, `plan.md` and `findings.json`. It dedupes findings raised by several audits, assigns IDs (`B1`, `S2`, `N3`, `K1`) that stay stable across re-runs, and computes the verdict (NO-GO, GO pending, or GO). With `--previous`, it reports new, resolved and still-open findings since an earlier run.
+- `plan.md`, the ordered route to GO: Blockers the agent can fix, Blockers waiting on the owner, recommended fixes, owner inputs to request, gates to re-run, release steps from `state.json` (approvals marked ⏸), and a post-launch backlog.
+- Findings schema fields: `owner` (`agent` / `owner` / `decision`), `effort` (`S` / `M` / `L`), `verify`, `status` and `fix_evidence` for fix mode, and `not_checked` per area.
+- The report has a "Not checked" section. Audit areas with no findings and gates that didn't run are listed there.
+- Eval for a client-shareable launch plan.
+
+### Changed
+
+- `fix` mode works through `plan.md` in order and records each outcome in the findings JSON, then rebuilds the report with the same IDs.
+- `resume` reads the unticked items in `plan.md` as the remaining work.
+
 ## [1.1.0] - 2026-11-04
 
 ### Added

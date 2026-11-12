@@ -42,7 +42,9 @@ It replaces the release checklist people run by hand and get wrong at 6pm on a F
 | **Release** | Conventional commits → staging → version bump → release PR → tag + GitHub release, with a stop before every outward-facing step |
 | **Smoke test** | Live status codes, `og:image` that resolves, robots per environment, canonical host, real 404s, http→https, static assets, CSP and security headers, proof the new build is live |
 
-Findings are ranked **Blocker / Should-fix / Nice-to-have**, each with `file:line`, a code-level fix, and evidence (screenshot path, log excerpt, or test name). The report also lists what *passed*, so "not listed" never means "not checked". See [the report template](skills/ship-site/references/report-format.md).
+Findings are ranked **Blocker / Should-fix / Nice-to-have**, each with `file:line`, a code-level fix, and evidence (screenshot path, log excerpt, or test name). The report lists what *passed*, so "not listed" never means "not checked", and what was *not* checked, so a skipped audit can't pass for a clean one.
+
+Next to the report it writes **`plan.md`**, the route to GO as a checklist. Blockers the agent can fix come first, then the ones waiting on the site owner, then recommended fixes, one list of inputs to request from the client, the gates to re-run, the release steps for your repo (each approval marked ⏸), and a post-launch backlog. Every item has an ID (`B1`, `S2`…) that stays the same across re-runs, a location, an effort size and a verify step. A deterministic script, `build_report.py`, builds both files and computes the verdict, so the counts, IDs and GO / NO-GO always agree with the findings. See [the report and plan format](skills/ship-site/references/report-format.md).
 
 ## Install
 
@@ -109,7 +111,7 @@ Or, without the plugin system: `python3 ship-site/install.py --agent claude` (or
 
 | Command | What it does | Changes code? | Outward-facing? |
 |---|---|---|---|
-| `/ship-site audit` | Read-only release-readiness report | No | No |
+| `/ship-site audit` | Read-only release-readiness report and launch plan | No | No |
 | `/ship-site fix` | Audit, then fix Blockers and Should-fixes locally, re-verifying each one | Local commits only | No |
 | `/ship-site release [patch\|minor\|major]` | Build gate → staging → version bump → release PR → tag and release | Version bump | Yes, every step gated |
 | `/ship-site smoke [url]` | Post-deploy smoke test; uses the URL from your docs if you omit it | No | No |
@@ -132,6 +134,7 @@ Verdict: NO-GO — 2 Blockers.
   2. CSP connect-src missing https://forms.example.com — next.config.ts:41
 Gates: lint ✅ · format ✅ · build ✅ · Playwright 96/96 ✅ (4 projects)
 Report: .ship-site/2026-10-26T14-02/report.md
+Plan:   .ship-site/2026-10-26T14-02/plan.md  (2 agent fixes · 0 owner inputs · re-run build)
 ```
 
 ## Safety model
@@ -189,7 +192,7 @@ Each run keeps a `state.json` checkpoint, so `/ship-site resume` picks up a rele
 
 ## Standalone scripts
 
-All three scripts run without any agent and are handy in CI.
+All four scripts run without any agent and are handy in CI.
 
 ```bash
 # Post-deploy smoke test. Exit: 0 pass, 1 check failed, 2 unreachable.
@@ -214,6 +217,11 @@ python3 skills/ship-site/scripts/smoke_test.py https://staging.example.com --env
   --legacy-urls https://www.old-site.com/sitemap.xml
 ```
 
+```bash
+# Merge findings/*.json + gates.json into report.md, plan.md, findings.json. Exit: 0 GO, 1 NO-GO or GO pending, 2 bad input.
+python3 skills/ship-site/scripts/build_report.py .ship-site/2026-11-12T10-00 --previous .ship-site/2026-11-05T09-30
+```
+
 Run any of them with `--help` for all flags. For a staging site behind basic auth, `smoke_test.py --header "Authorization: Basic …"` sends that header only to the site under test, and only over https.
 
 ## Repository layout
@@ -229,6 +237,7 @@ skills/ship-site/
                           security, seo, analytics, a11y-perf, browser, release,
                           hosting, playwright-scaffold, report-format)
   scripts/
+    build_report.py       merges findings + gates into report.md and plan.md
     smoke_test.py         HTTP smoke checks, incl. legacy-URL parity
     csp_hosts.py          CSP vs source host diff
     launch_content.py     placeholder / scaffold / legacy-link scan
