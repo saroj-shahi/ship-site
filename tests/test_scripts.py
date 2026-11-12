@@ -195,6 +195,112 @@ class LaunchContentCli(unittest.TestCase):
         self.assertEqual(run("launch_content.py", str(clean)).returncode, 0)
 
 
+class BuildReportCli(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.run_dir = Path(self.tmp.name) / "run1"
+        self.write("findings/security.json", {
+            "area": "security", "passed": ["HSTS"], "not_checked": ["rate limit: no staging access"],
+            "findings": [{"severity": "blocker", "title": "CSP connect-src missing api.example.com",
+                          "file": "next.config.ts", "line": 37, "fix": "Add the host.",
+                          "verify": "csp_hosts.py exits 0", "effort": "S"}]})
+        self.write("findings/seo.json", {"area": "seo", "findings": [
+            {"severity": "should-fix", "title": "CSP connect-src missing api.example.com",
+             "file": "next.config.ts", "line": 37},
+            {"severity": "blocker", "title": "Privacy policy is placeholder", "file": "src/app/privacy/page.tsx",
+             "owner": "client", "effort": "M"},
+            {"severity": "nice to have", "title": "Long title", "file": "src/app/about/page.tsx", "line": 3},
+            {"severity": "should-fix", "title": "Footer links old host", "known_preexisting": True}]})
+        self.write("gates.json", {"lint": "pass", "build": {"status": "pass"},
+                                  "playwright": {"status": "fail", "detail": "3 failed"}})
+        self.write("state.json", {"mode": "audit", "repo": "/x/acme-site", "release": {"steps": [
+            {"step": "Push", "command": "git push -u origin feat/x", "approval": True}]}})
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def write(self, rel: str, data, run_dir: Path | None = None) -> None:
+        path = (run_dir or self.run_dir) / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data))
+
+    def build(self, *args: str, run_dir: Path | None = None) -> tuple[int, dict]:
+        res = run("build_report.py", str(run_dir or self.run_dir), "--json", *args)
+        self.assertNotEqual(res.returncode, 2, res.stderr)
+        return res.returncode, json.loads(res.stdout)
+
+    def test_merges_duplicates_and_computes_no_go(self):
+        code, out = self.build()
+        self.assertEqual((code, out["verdict"]), (1, "NO-GO"))
+        by_id = {f["id"]: f for f in out["findings"]}
+        self.assertEqual(sorted(by_id), ["B1", "B2", "K1", "N1"])
+        self.assertEqual(by_id["B1"]["sources"], ["security", "seo"])  # deduped, highest severity kept
+        self.assertEqual(by_id["B2"]["owner"], "owner")
+        self.assertIn("failed gate: playwright", "; ".join(out["reasons"]))
+        self.assertIn("design", out["missing_areas"])
+
+    def test_report_and_plan_contents(self):
+        self.build()
+        report = (self.run_dir / "report.md").read_text()
+        plan = (self.run_dir / "plan.md").read_text()
+        self.assertIn("**Verdict: NO-GO**", report)
+        self.assertIn("rate limit: no staging access", report)
+        self.assertIn("**Design:** no findings recorded — not run", report)
+        self.assertIn("| **Total open** | **2** | **0** | **1** | **1** |", report)
+        agent = plan.index("Required before launch — agent can fix")
+        owner = plan.index("Required before launch — needs the owner")
+        self.assertLess(agent, plan.index("**B1**"), "agent-fixable Blocker under its section")
+        self.assertLess(owner, plan.index("**B2**"))
+        self.assertIn("Verify: csp_hosts.py exits 0", plan)
+        self.assertIn("## Owner inputs to request", plan)
+        self.assertIn("- [ ] ⏸ Push — `git push -u origin feat/x`", plan)
+        self.assertIn("- [ ] playwright — last: fail, 3 failed", plan)
+
+    def test_fixes_keep_ids_and_reach_go(self):
+        self.build()
+        sec = json.loads((self.run_dir / "findings/security.json").read_text())
+        sec["findings"][0].update(status="fixed", fix_evidence="csp_hosts.py exit 0")
+        self.write("findings/security.json", sec)
+        seo = json.loads((self.run_dir / "findings/seo.json").read_text())
+        seo["findings"][1]["status"] = "accepted"
+        self.write("findings/seo.json", seo)
+        self.write("gates.json", {"lint": "pass", "build": "pass", "playwright": "pass"})
+        code, out = self.build()
+        self.assertEqual((code, out["verdict"]), (0, "GO"))
+        self.assertEqual({f["id"] for f in out["findings"] if f["bucket"] == "blocker"}, {"B1", "B2"})
+        self.assertIn("- [x] **B1**", (self.run_dir / "plan.md").read_text())
+
+    def test_unrun_gate_or_unverified_fix_is_go_pending(self):
+        sec = json.loads((self.run_dir / "findings/security.json").read_text())
+        sec["findings"][0]["status"] = "could-not-verify"
+        self.write("findings/security.json", sec)
+        seo = json.loads((self.run_dir / "findings/seo.json").read_text())
+        seo["findings"][1]["status"] = "fixed"
+        self.write("findings/seo.json", seo)
+        self.write("gates.json", {"build": "pass", "playwright": "not-run"})
+        code, out = self.build()
+        self.assertEqual((code, out["verdict"]), (1, "GO pending"))
+        self.assertIn("B1", "; ".join(out["reasons"]))
+
+    def test_previous_run_delta(self):
+        self.build()
+        run2 = Path(self.tmp.name) / "run2"
+        self.write("findings/seo.json", {"area": "seo", "findings": [
+            {"severity": "blocker", "title": "Privacy policy is placeholder", "file": "src/app/privacy/page.tsx"},
+            {"severity": "should-fix", "title": "New issue", "file": "a.ts"}]}, run_dir=run2)
+        _, out = self.build("--previous", str(self.run_dir), run_dir=run2)
+        self.assertEqual(out["delta"]["new"], "S1")
+        self.assertEqual(out["delta"]["still_open"], "B2")
+        self.assertIn("B1", out["delta"]["resolved"])
+
+    def test_bad_input_exits_2(self):
+        self.write("findings/x.json", {"area": "x", "findings": [{"severity": "huge", "title": "t"}]})
+        res = run("build_report.py", str(self.run_dir))
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("unknown severity", res.stderr)
+        self.assertEqual(run("build_report.py", str(Path(self.tmp.name) / "nope")).returncode, 2)
+
+
 class FakeSite(http.server.BaseHTTPRequestHandler):
     """A tiny production-like site; `staging = True` serves the noindex variant."""
     staging = False
