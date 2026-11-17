@@ -118,7 +118,9 @@ The installer symlinks by default, so `git pull` updates the skill. It copies in
 
 ## Use
 
-Just describe what you need. No command required.
+<img src="./assets/readme/command.svg" width="100%" alt="/ship-site in giant type with a blinking amber cursor. Modes: audit, quick, fix, release, smoke, rollback, status, resume. It asks before anything leaves your machine">
+
+Type `/ship-site`, or just describe what you need. No command required.
 
 | Say | What happens |
 |---|---|
