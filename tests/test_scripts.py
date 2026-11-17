@@ -301,6 +301,114 @@ class BuildReportCli(unittest.TestCase):
         self.assertEqual(run("build_report.py", str(Path(self.tmp.name) / "nope")).returncode, 2)
 
 
+    def test_scoped_run_lists_out_of_scope_and_caps_at_go_pending(self):
+        for f in (self.run_dir / "findings").glob("*.json"):
+            f.unlink()
+        self.write("findings/seo.json", {"area": "seo", "passed": ["titles"], "findings": []})
+        self.write("gates.json", {"lint": "pass", "build": "pass"})
+        self.write("state.json", {"mode": "audit", "scope": ["seo"]})
+        code, out = self.build()
+        self.assertEqual((code, out["verdict"]), (1, "GO pending"))
+        self.assertEqual(out["missing_areas"], [])
+        self.assertIn("scoped run (seo)", "; ".join(out["reasons"]))
+        report = (self.run_dir / "report.md").read_text()
+        self.assertIn("Out of scope for this run:** Knowledge base", report)
+        self.assertNotIn("not run", report.split("## Not checked")[1].split("##")[0])
+
+    def test_quick_mode_and_scope_flag(self):
+        self.write("state.json", {"mode": "quick"})
+        _, out = self.build()
+        self.assertEqual(out["scope"], ["launch-content", "security"])
+        self.assertEqual(out["verdict"], "NO-GO", "a slice can still find a NO-GO")
+        _, out = self.build("--scope", "security,seo")
+        self.assertEqual(out["scope"], ["security", "seo"])
+
+
+class DetectCli(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        files = {
+            "package.json": json.dumps({"name": "root", "packageManager": "pnpm@9.0.0"}),
+            "pnpm-workspace.yaml": "packages:\n  - 'apps/*'\n",
+            "pnpm-lock.yaml": "", "package-lock.json": "{}",
+            "apps/web/package.json": json.dumps({"name": "web", "dependencies": {"next": "15.1.0"}, "scripts": {
+                "lint": "next lint", "build": "next build", "release:patch": "x",
+                "build:cf": "opennextjs-cloudflare build"}}),
+            "apps/web/wrangler.jsonc": "{}",
+            "apps/docs/package.json": json.dumps({"name": "docs"}),
+            "apps/web/src/app/page.tsx": "", "apps/web/src/app/(marketing)/about/page.tsx": "",
+            "apps/web/src/app/work/[slug]/page.tsx": "", "apps/web/src/app/_lib/page.tsx": "",
+            "apps/web/src/app/@modal/(.)work/page.tsx": "", "apps/web/src/app/not-found.tsx": "",
+            "CLAUDE.md": "Staging: https://staging.acme.test/\nProduction (live): https://www.acme.test\n"
+                         "This rebuild will replace the live site.\n",
+            ".ship-site/2026-11-01T10-00/state.json": json.dumps(
+                {"mode": "release", "steps": {"11": "in_progress"}, "next": "PR dev to main"}),
+        }
+        for rel, text in files.items():
+            (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.root / rel).write_text(text)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def detect(self, *args: str) -> tuple[int, dict]:
+        res = run("detect.py", str(self.root), "--json", *args)
+        self.assertNotEqual(res.returncode, 2, res.stderr)
+        return res.returncode, json.loads(res.stdout)
+
+    def test_monorepo_app_routes_and_facts(self):
+        code, d = self.detect()
+        self.assertEqual(code, 0)
+        self.assertEqual(d["app"]["path"], "apps/web")
+        self.assertEqual([r["url"] for r in d["routes"]], ["/", "/about", "/work/[slug]"])
+        self.assertTrue(d["routes"][-1]["dynamic"])
+        self.assertEqual(d["pm"]["name"], "pnpm")
+        self.assertEqual(d["pm"]["stale_lockfiles"], ["package-lock.json"])
+        self.assertEqual(d["hosts"], ["Cloudflare Workers"])
+        self.assertEqual(d["scripts"]["host_build"], "build:cf")
+        self.assertEqual(d["scripts"]["release"], ["release:patch"])
+        self.assertIsNone(d["scripts"]["format_check"])
+        self.assertTrue(d["app_files"]["not-found"])
+        self.assertFalse(d["app_files"]["global-error"])
+        self.assertEqual(d["docs"]["urls"]["staging"], ["https://staging.acme.test"])
+        self.assertEqual(d["docs"]["urls"]["production"], ["https://www.acme.test"])
+        self.assertTrue(d["docs"]["replatform_hints"])
+        self.assertTrue(d["previous"][0]["unfinished"])
+
+    def test_several_next_apps_need_app_flag(self):
+        (self.root / "apps/docs/package.json").write_text(json.dumps({"dependencies": {"next": "15"}}))
+        code, d = self.detect()
+        self.assertEqual(code, 1)
+        self.assertIsNone(d["app"]["path"])
+        self.assertEqual(d["app"]["candidates"], ["apps/docs", "apps/web"])
+        code, d = self.detect("--app", "apps/web")
+        self.assertEqual((code, d["app"]["path"]), (0, "apps/web"))
+
+    def test_state_is_merged_not_overwritten(self):
+        state = self.root / "run" / "state.json"
+        state.parent.mkdir()
+        state.write_text(json.dumps({"mode": "audit", "base": "main"}))
+        self.detect("--state", str(state))
+        out = json.loads(state.read_text())
+        self.assertEqual((out["mode"], out["base"]), ("audit", "main"))
+        self.assertEqual(out["detected"]["pm"], "pnpm")
+        self.assertEqual(out["detected"]["app"], "apps/web")
+
+    def test_pages_router_and_bad_app(self):
+        root = self.root / "solo"
+        for rel in ("pages/index.tsx", "pages/blog/[id].tsx", "pages/_app.tsx", "pages/api/x.ts"):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text("")
+        (root / "package.json").write_text(json.dumps({"dependencies": {"next": "14"}}))
+        (root / "yarn.lock").write_text("")
+        res = run("detect.py", str(root), "--json")
+        d = json.loads(res.stdout)
+        self.assertEqual((d["next"]["router"], d["pm"]["name"]), ("pages", "yarn"))
+        self.assertEqual([r["url"] for r in d["routes"]], ["/", "/blog/[id]"])
+        self.assertEqual(run("detect.py", str(self.root), "--app", "nope").returncode, 2)
+
+
 class FakeSite(http.server.BaseHTTPRequestHandler):
     """A tiny production-like site; `staging = True` serves the noindex variant."""
     staging = False

@@ -66,7 +66,7 @@ Preview-per-PR hosts (Vercel, Netlify deploy previews) often run feature → `ma
 
 ## If something fails mid-release
 
-Stop. Don't try to "finish" by skipping a gate. Report the state precisely (which branch has which commit, whether the tag exists, whether prod deployed) and the options: fix-forward on a `fix/*` branch through the same flow, or revert the merge PR. Never delete a published tag/release without explicit instruction.
+Stop. Don't try to "finish" by skipping a gate. Report the state precisely (which branch has which commit, whether the tag exists, whether prod deployed) and the options: fix-forward on a `fix/*` branch through the same flow, or revert the merge PR. If production is already serving the broken build, follow `rollback.md` (host rollback vs revert, per host). Never delete a published tag/release without explicit instruction.
 
 ## Release notes
 
