@@ -1,12 +1,13 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/logo-mark-reverse.svg">
-  <source media="(prefers-color-scheme: light)" srcset="./assets/brand/logo-mark.svg">
-  <img alt="ship-site logo" src="./assets/brand/logo-mark.svg" width="96" height="96">
-</picture>
-
-# ship-site
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/logo-mark-reverse.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./assets/brand/logo-mark.svg">
+    <img alt="" src="./assets/brand/logo-mark.svg" width="52" height="52" align="absmiddle">
+  </picture>
+  ship-site
+</h1>
 
 **Ship the site. Keep the receipts.**
 
