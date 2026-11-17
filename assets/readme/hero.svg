@@ -48,8 +48,8 @@
       <text x="200" y="378" fill="#7C7D82" text-decoration="line-through">NO-GO</text>
       <text x="268" y="378" fill="#7C7D82">→</text>
     </g>
-    <rect x="296" y="352" width="76" height="38" rx="999" fill="#F59E0B"/>
-    <text x="334" y="378" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="18" font-weight="800" fill="#080808">GO</text>
+    <rect x="296" y="352" width="76" height="38" rx="999" fill="#22C55E"/>
+    <text x="334" y="378" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="18" font-weight="800" fill="#052E16">GO</text>
     <text x="572" y="378" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#7C7D82">push to staging? [y/N]</text>
   </g>
 </svg>
