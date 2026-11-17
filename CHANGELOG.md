@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- `detect.py`: deterministic, offline step 0. Reports the app location (monorepo-aware: workspaces, `pnpm-workspace.yaml`, Turborepo, Nx), Next version and router, package manager and stale lockfiles, host, git host, base and production branches, gate/host-build/release scripts, routes (route groups, private folders, parallel and intercepting routes handled; dynamic segments flagged), missing `not-found`/`error`/`sitemap`/`robots`, staging and production URLs and replatform hints from the docs, and unfinished earlier runs. `--state` merges the facts into a run's `state.json`.
+- Scoped audits: `/ship-site audit seo,security` (and `fix [areas]`) runs only those areas. `build_report.py` lists the rest as out of scope (`state.scope` or `--scope`), and a scoped verdict is never better than GO pending.
+- `quick` mode: detection, the content and CSP scans and the build gate in a few minutes, for a check before a push or PR.
+- `rollback` mode and `references/rollback.md`: reproduce the breakage, choose between a host rollback (Vercel, Netlify, Amplify, Cloudflare Workers) and a git revert, run it with an approval at each step, smoke-test production again, and plan the re-sync so the next deploy doesn't re-ship the broken build.
+- `status` mode: a read-only summary of the latest run (verdict, open IDs, owner inputs, release progress, next step).
+- `--app <path>` for a Next.js app inside a monorepo; gates run through the workspace filter.
+- Evals for a scoped audit, quick mode, a production rollback and a monorepo pre-launch check.
+
 - `build_report.py`: merges each audit's findings JSON and `gates.json` into `report.md`, `plan.md` and `findings.json`. It dedupes findings raised by several audits, assigns IDs (`B1`, `S2`, `N3`, `K1`) that stay stable across re-runs, and computes the verdict (NO-GO, GO pending, or GO). With `--previous`, it reports new, resolved and still-open findings since an earlier run.
 - `plan.md`, the ordered route to GO: Blockers the agent can fix, Blockers waiting on the owner, recommended fixes, owner inputs to request, gates to re-run, release steps from `state.json` (approvals marked ⏸), and a post-launch backlog.
 - Findings schema fields: `owner` (`agent` / `owner` / `decision`), `effort` (`S` / `M` / `L`), `verify`, `status` and `fix_evidence` for fix mode, and `not_checked` per area.

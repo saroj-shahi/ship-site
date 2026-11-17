@@ -6,7 +6,7 @@ A run produces three inputs and three outputs, all in the run folder:
 |---|---|---|
 | `findings/<area>.json` | each audit subagent, and you for `knowledge-base`, `launch-content`, `browser` | findings for one area, plus what was checked, passed, and not checked |
 | `gates.json` | you, after steps 9, 10 and 12 | pass/fail of every gate |
-| `state.json` | you, throughout | mode, repo facts, release progress and release steps |
+| `state.json` | `detect.py --state` (repo facts), then you, throughout | mode, scope, repo facts, release progress and release steps, rollback |
 | `report.md` | `scripts/build_report.py` | the go/no-go report |
 | `plan.md` | `scripts/build_report.py` | the ordered route to GO and through the release |
 | `findings.json` | `scripts/build_report.py` | merged findings with stable IDs; the next run's `--previous` |
@@ -74,6 +74,8 @@ Don't hand-write `report.md` or `plan.md`. To change them, fix the inputs and re
 - **NO-GO**: any open Blocker (status not `fixed`/`accepted`), or any gate `fail`.
 - **GO pending**: no open Blocker, but a gate is `not-run` or `flaky`, a Blocker fix is `could-not-verify`, or no gates were recorded.
 - **GO**: zero open Blockers and every recorded gate passed.
+
+**Scoped runs** (`"scope": ["seo", "security"]` in `state.json`, `--scope`, or `"mode": "quick"`, which scopes to `launch-content` and `security`): areas outside the scope are listed as out of scope, not as "not run", and a clean result is **GO pending**, never GO. A slice can find a NO-GO but can't prove a release.
 
 `--summary` replaces the one-line reason after the verdict. It can't change the verdict itself. A single unverified Blocker fix means "GO pending", never a clean GO.
 

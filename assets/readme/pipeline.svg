@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" role="img" aria-label="Pipeline: read the repo, parallel audits, browser proof, tests, build gate, report and plan, then release and smoke test with a stop for approval before every outward-facing step">
+  <rect width="1280" height="300" rx="20" fill="#080808"/>
+  <g font-family="Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+    <text x="48" y="52" font-size="15" font-weight="600" fill="#7C7D82" letter-spacing="1.5">LOCAL · READ-ONLY OR LOCAL COMMITS</text>
+    <text x="1232" y="52" font-size="15" font-weight="600" fill="#7C7D82" letter-spacing="1.5" text-anchor="end">OUTWARD-FACING · EVERY STEP ASKS</text>
+    <line x1="842" y1="34" x2="842" y2="264" stroke="#F59E0B" stroke-opacity=".5" stroke-dasharray="4 6"/>
+  </g>
+  <g font-family="Manrope,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" text-anchor="middle">
+    <g transform="translate(48 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🔎</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Read repo</text><text x="59" y="96" font-size="12" fill="#B8B9BC">detect.py</text>
+    </g>
+    <g transform="translate(182 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🧪</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Audits</text><text x="59" y="96" font-size="12" fill="#B8B9BC">6 in parallel</text>
+    </g>
+    <g transform="translate(316 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🖥️</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Browser</text><text x="59" y="96" font-size="12" fill="#B8B9BC">1440 + 375 px</text>
+    </g>
+    <g transform="translate(450 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🎭</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Tests</text><text x="59" y="96" font-size="12" fill="#B8B9BC">Playwright</text>
+    </g>
+    <g transform="translate(584 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🧱</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Build gate</text><text x="59" y="96" font-size="12" fill="#B8B9BC">lint · fmt · build</text>
+    </g>
+    <g transform="translate(718 92)">
+      <rect width="108" height="112" rx="14" fill="#1A1206" stroke="#F59E0B"/>
+      <text x="54" y="44" font-size="26">📋</text><text x="54" y="76" font-size="15" font-weight="700" fill="#F59E0B">GO / NO-GO</text><text x="54" y="96" font-size="12" fill="#FCD34D">report + plan</text>
+    </g>
+    <g transform="translate(860 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🚦</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Staging</text><text x="59" y="96" font-size="12" fill="#B8B9BC">asks: push, PR</text>
+    </g>
+    <g transform="translate(994 92)">
+      <rect width="118" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="59" y="44" font-size="26">🏷️</text><text x="59" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Release</text><text x="59" y="96" font-size="12" fill="#B8B9BC">asks: bump, tag</text>
+    </g>
+    <g transform="translate(1128 92)">
+      <rect width="104" height="112" rx="14" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".12"/>
+      <text x="52" y="44" font-size="26">🚀</text><text x="52" y="76" font-size="15" font-weight="600" fill="#ECEDFD">Smoke</text><text x="52" y="96" font-size="12" fill="#B8B9BC">prod live?</text>
+    </g>
+  </g>
+  <g stroke="#F59E0B" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M168 148h12m-5-5 5 5-5 5"/><path d="M302 148h12m-5-5 5 5-5 5"/><path d="M436 148h12m-5-5 5 5-5 5"/>
+    <path d="M570 148h12m-5-5 5 5-5 5"/><path d="M704 148h12m-5-5 5 5-5 5"/><path d="M828 148h30m-5-5 5 5-5 5"/>
+    <path d="M980 148h12m-5-5 5 5-5 5"/><path d="M1114 148h12m-5-5 5 5-5 5"/>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#7C7D82">
+    <text x="48" y="250">state.json checkpoints every step → /ship-site resume picks up after a cut-off</text>
+    <text x="1232" y="250" text-anchor="end">smoke fails on prod → /ship-site rollback</text>
+  </g>
+</svg>

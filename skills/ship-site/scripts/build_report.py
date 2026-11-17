@@ -9,13 +9,17 @@ the agent spends its effort on the findings, not the bookkeeping.
 
 Usage:
   build_report.py <run_dir> [--previous <earlier_run_dir>] [--summary "..."]
-                  [--title "repo v1.4.1"] [--json]
+                  [--title "repo v1.4.1"] [--scope seo,security] [--json]
 
 Reads (all inside <run_dir>):
   findings/*.json   one file per area: {"area", "checked", "findings", "passed", "not_checked"}
   gates.json        {"lint": {"status": "pass|fail|flaky|not-run", "detail": "...", "log": "logs/lint.log"}, ...}
-  state.json        optional: mode, repo, base, head_sha, detected, version, replatform,
+  state.json        optional: mode, scope, repo, base, head_sha, detected, version, replatform,
                     release.steps [{"step", "command", "approval", "done"}]
+
+A scoped run (state.scope or --scope, e.g. ["seo", "security"], or mode "quick")
+audits only those areas: the rest are listed as out of scope rather than "not run",
+and the verdict can't be better than "GO pending", because a slice is not a release.
 Writes:
   report.md         the go/no-go report (references/report-format.md)
   plan.md           the ordered work plan: required before GO, recommended, owner inputs,
@@ -47,7 +51,8 @@ AREA_LABELS = {"knowledge-base": "Knowledge base", "launch-content": "Launch con
 # Areas a full audit is expected to cover; a missing file means "not run", never "clean".
 AUDIT_AREAS = ("knowledge-base", "launch-content", "design", "code", "security", "seo",
                "analytics", "a11y-perf", "browser")
-AUDIT_MODES = {"audit", "fix", "full", None}
+AUDIT_MODES = {"audit", "fix", "full", "quick", None}
+QUICK_SCOPE = ("launch-content", "security")
 OWNERS = {"agent": "agent", "owner": "owner", "client": "owner", "decision": "decision"}
 DONE = {"fixed", "accepted"}
 STATUS_LABEL = {"open": "open", "fixed": "fixed", "skipped": "skipped",
@@ -175,7 +180,7 @@ def read_gates(run: Path) -> dict[str, dict]:
     return gates
 
 
-def verdict(findings: list[dict], gates: dict[str, dict]) -> tuple[str, list[str]]:
+def verdict(findings: list[dict], gates: dict[str, dict], scope: list[str] | None = None) -> tuple[str, list[str]]:
     open_blockers = [f for f in findings if f["bucket"] == "blocker" and f["status"] not in DONE]
     unverified = [f for f in findings if f["bucket"] == "blocker" and f["status"] == "could-not-verify"]
     failed = [n for n, g in gates.items() if g["status"] == "fail"]
@@ -195,6 +200,8 @@ def verdict(findings: list[dict], gates: dict[str, dict]) -> tuple[str, list[str
         reasons.append("gate not run or flaky: " + ", ".join(pending_gates))
     if not gates:
         reasons.append("no gate results recorded (gates.json missing)")
+    if scope:
+        reasons.append("scoped run (" + ", ".join(scope) + "): the other areas were not audited")
     if reasons:
         return "GO pending", reasons
     return "GO", ["zero open Blockers and every recorded gate passed"]
@@ -256,6 +263,9 @@ def render_report(ctx: dict) -> str:
         detected = " · ".join(f"{k} {v_}" for k, v_ in detected.items())
     if detected:
         L.append(f"Detected: {detected}")
+    if ctx["scope"]:
+        L.append("Scope: " + ", ".join(area_label(a) for a in ctx["scope"])
+                 + " only. Not a full release verdict; run a full audit before launch.")
     if state.get("head_sha"):
         L.append(f"Commit: `{state['head_sha']}`" + (f" on `{state['branch']}`" if state.get("branch") else ""))
     L.append("")
@@ -302,6 +312,8 @@ def render_report(ctx: dict) -> str:
     L += ["## Not checked", ""]
     L += [f"- **{area_label(a)}:** {'; '.join(n)}" for a, n in gaps]
     L += [f"- **{area_label(a)}:** no findings recorded — not run" for a in missing]
+    if ctx["out_of_scope"]:
+        L.append("- **Out of scope for this run:** " + ", ".join(area_label(a) for a in ctx["out_of_scope"]))
     L += [f"- **Gate {n}:** not run" + (f" — {g['detail']}" if g.get("detail") else "")
           for n, g in gates.items() if g["status"] == "not-run"]
     if L[-1] == "":
@@ -419,7 +431,8 @@ def render_plan(ctx: dict) -> str:
 
 # ---------------------------------------------------------------- main
 
-def build(run: Path, previous: Path | None, summary: str | None, title: str | None) -> dict:
+def build(run: Path, previous: Path | None, summary: str | None, title: str | None,
+          scope: list[str] | None = None) -> dict:
     state = load_json(run / "state.json") if (run / "state.json").exists() else {}
     raw, areas = read_findings(run)
     findings = merge(raw)
@@ -439,7 +452,13 @@ def build(run: Path, previous: Path | None, summary: str | None, title: str | No
     assign_ids(findings, prev_ids)
     gates = read_gates(run)
     mode = state.get("mode")
-    missing = [a for a in AUDIT_AREAS if mode in AUDIT_MODES and a not in areas
+    scope = scope or state.get("scope") or (list(QUICK_SCOPE) if mode == "quick" else None)
+    if isinstance(scope, str):
+        scope = [scope]
+    scope = [str(a).strip() for a in scope or [] if str(a).strip()] or None
+    expected = [a for a in AUDIT_AREAS if not scope or a in scope]
+    out_of_scope = [a for a in AUDIT_AREAS if scope and a not in scope and a not in areas]
+    missing = [a for a in expected if mode in AUDIT_MODES and a not in areas
                and not any(a in f["sources"] for f in findings)]
     repo = state.get("repo")
     ctx = {
@@ -447,15 +466,16 @@ def build(run: Path, previous: Path | None, summary: str | None, title: str | No
         "title": title or " ".join(x for x in (Path(repo).name if repo else run.name,
                                                state.get("version") or state.get("branch")) if x),
         "date": dt.date.today().isoformat(), "missing_areas": missing,
+        "scope": scope, "out_of_scope": out_of_scope,
         "delta": compare(findings, prev_findings),
     }
-    ctx["verdict"] = verdict(findings, gates)
+    ctx["verdict"] = verdict(findings, gates, scope)
     (run / "report.md").write_text(render_report(ctx), encoding="utf-8")
     (run / "plan.md").write_text(render_plan(ctx), encoding="utf-8")
     keep = ("id", "fingerprint", "bucket", "severity", "area", "sources", "title", "file", "line",
             "problem", "fix", "evidence", "verify", "owner", "effort", "status", "fix_evidence",
             "known_preexisting")
-    merged = {"verdict": ctx["verdict"][0], "reasons": ctx["verdict"][1],
+    merged = {"verdict": ctx["verdict"][0], "reasons": ctx["verdict"][1], "scope": scope,
               "findings": [{k: f[k] for k in keep if f.get(k) is not None} for f in findings]}
     merged_path.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
     return {**merged, "missing_areas": missing, "delta": {k: ids(v) for k, v in (ctx["delta"] or {}).items()}}
@@ -467,10 +487,13 @@ def main() -> int:
     ap.add_argument("--previous", type=Path, help="an earlier run folder, to report new/resolved/still-open")
     ap.add_argument("--summary", help="one sentence after the verdict; defaults to the computed reasons")
     ap.add_argument("--title", help="report title, e.g. 'acme-site v1.4.1' (default: repo name + version/branch)")
+    ap.add_argument("--scope", help="comma-separated audit areas this run covered (overrides state.scope), e.g. seo,security")
     ap.add_argument("--json", action="store_true", help="print the merged result as JSON")
     args = ap.parse_args()
+    scope = [a for a in (args.scope or "").split(",") if a.strip()] or None
     try:
-        result = build(args.run_dir.resolve(), args.previous and args.previous.resolve(), args.summary, args.title)
+        result = build(args.run_dir.resolve(), args.previous and args.previous.resolve(), args.summary,
+                       args.title, scope)
     except InputError as e:
         print(f"build_report: {e}", file=sys.stderr)
         return 2
@@ -481,6 +504,8 @@ def main() -> int:
                   for b in SEVERITIES + ("known",)}
         print(f"Verdict: {result['verdict']} — {'; '.join(result['reasons'])}")
         print("Open: " + " · ".join(f"{n} {b}" for b, n in counts.items()))
+        if result["scope"]:
+            print("Scope: " + ", ".join(result["scope"]))
         if result["missing_areas"]:
             print("Not run: " + ", ".join(result["missing_areas"]))
         print(f"Wrote {args.run_dir / 'report.md'}, plan.md, findings.json")

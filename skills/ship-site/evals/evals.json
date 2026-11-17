@@ -115,6 +115,62 @@
         "The plan lists the gates to re-run and the verdict matches the computed one (NO-GO / GO pending / GO)",
         "The response to the user gives the verdict, the path to GO and the paths to report.md and plan.md"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "just check the SEO and analytics on this branch before I open the PR, don't need the whole thing",
+      "expected_output": "Runs a scoped audit (seo, analytics) plus the build gate, records the scope in state.json, and reports a verdict no better than GO pending with the other areas listed as out of scope.",
+      "files": [],
+      "assertions": [
+        "Only the SEO and analytics audits were run (no design, a11y-perf or code subagents)",
+        "state.json records scope [\"seo\", \"analytics\"] (or build_report.py was called with --scope)",
+        "The build gate was still run and recorded in gates.json",
+        "report.md lists the other areas as out of scope, not as 'not run'",
+        "The verdict is NO-GO or GO pending, never a plain GO",
+        "No tracked files were modified"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "quick sanity check before I push this branch",
+      "expected_output": "Runs quick mode: detect.py, launch_content.py, csp_hosts.py and the build gate, no subagents or browser, then a short verdict with the advice to run a full audit before launch.",
+      "files": [],
+      "assertions": [
+        "detect.py was run in step 0",
+        "launch_content.py and csp_hosts.py were run and their hits triaged",
+        "The build gate ran (aggregate script, or lint/format/build) and its result is reported",
+        "No audit subagents were launched and no browser session was started",
+        "The answer is short (verdict, failed gates, Blocker IDs) and does not call the branch release-ready",
+        "Nothing was pushed"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "we released v1.4.0 an hour ago and the contact form is broken on prod. roll it back",
+      "expected_output": "Reproduces the breakage on production, identifies the last good release and deploy, recommends host rollback or revert for the detected host, asks before executing it, smoke-tests production afterwards and records the rollback and follow-ups.",
+      "files": [],
+      "assertions": [
+        "Reproduced the failure on production (smoke_test.py and/or the browser) before acting",
+        "Named the last good version/deploy with evidence (tag, deploy list)",
+        "Recommended one route (host rollback, revert, or fix forward) with a reason specific to the detected host",
+        "Asked before executing the rollback, revert push, PR or merge",
+        "Re-ran the production smoke test after the rollback and recorded it in gates.json",
+        "Recorded the rollback in state.json and planned the follow-ups (fix forward, re-sync git or re-enable auto-deploy)",
+        "Did not delete the v1.4.0 tag or GitHub release"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "pre-launch check for the marketing site in this turborepo (it's the one in apps/)",
+      "expected_output": "Detects the monorepo, locates the Next.js app package, runs audits against it and gates with the workspace filter, and reports with the app path in the detected stack.",
+      "files": [],
+      "assertions": [
+        "Step-0 summary names the app's path inside the monorepo (e.g. apps/web)",
+        "If several apps depend on next, asked which one (or used the one the user named)",
+        "Routes were listed from the app's own app/ directory",
+        "Gates ran through the workspace filter or from the app directory, not against an unrelated package",
+        "Report has an explicit verdict and plan.md exists"
+      ]
     }
   ]
 }
