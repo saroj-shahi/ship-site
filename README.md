@@ -14,6 +14,7 @@
 [![tests](https://github.com/saroj-shahi/ship-site/actions/workflows/ci.yml/badge.svg)](https://github.com/saroj-shahi/ship-site/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-f59e0b?labelColor=080808)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/saroj-shahi/ship-site?color=f59e0b&labelColor=080808)](https://github.com/saroj-shahi/ship-site/stargazers)
+[![Buy me a coffee](https://img.shields.io/badge/buy%20me%20a-coffee-f59e0b?logo=buymeacoffee&logoColor=white&labelColor=080808)](https://buymeacoffee.com/sarojshahi)
 
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-f59e0b?labelColor=080808)](#install)
 [![Codex](https://img.shields.io/badge/Codex-skill-f59e0b?labelColor=080808)](#install)
@@ -24,7 +25,7 @@
 
 <img src="./assets/readme/hero.svg" width="100%" alt="ship-site: a terminal running /ship-site fix shows the detected stack, audits, browser checks and gates passing, three findings marked fixed, and the verdict going from NO-GO to GO before it asks to push to staging">
 
-[**Install**](#install) · [**Use**](#use) · [**What it checks**](#what-it-checks) · [**Safety**](#safety-model) · [**Scripts**](#standalone-scripts)
+[**Install**](#install) · [**Use**](#use) · [**What it checks**](#what-it-checks) · [**Safety**](#safety-model) · [**Scripts**](#standalone-scripts) · [**Support**](#support)
 
 </div>
 
@@ -336,6 +337,11 @@ The tests run each script against local fixture repos and a throwaway HTTP serve
 - `launch_content.py` matches patterns, not meaning. Treat each hit as a candidate and confirm it on the rendered page.
 - Hosting guidance covers AWS Amplify, Vercel, Netlify and Cloudflare Workers (OpenNext). For any other host, the skill asks for your staging and production URLs and skips the host-specific checks.
 - It can't fix anything that lives outside the repo, such as GA admin event rules, host console headers or DNS. It flags those for you instead.
+
+## Support
+
+ship-site is free and open source. If it caught something before your users did and you'd like to say
+thanks, you can [buy me a coffee](https://buymeacoffee.com/sarojshahi). Bug reports, ideas and stars help too.
 
 ## License
 
