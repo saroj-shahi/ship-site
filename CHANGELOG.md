@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Multi-stack support: Next.js, Astro, Nuxt, SvelteKit, Remix, React Router v7 (framework mode), Gatsby, Angular, Eleventy, Create React App, Vite SPAs (React, Vue, Svelte, Solid, Preact), Hugo, Jekyll and plain static HTML. Django, Rails, Laravel and WordPress are recognised by name, with routes found by crawling the running site.
+- `detect.py` reports a `framework` object (name, label, version, config, router, pages directory, dev port, output directory, public env prefixes, build and dev commands) and `routes_source`.
+- New hosts detected: Firebase Hosting, Azure Static Web Apps, Render, Fly.io and GitHub Pages. `references/hosting.md` covers where headers and redirects live, previews and rollback for each; `references/rollback.md` adds Firebase Hosting and GitHub Pages.
+- `references/frameworks.md`: per-stack route conventions, SEO and metadata API, 404 page, sitemap and robots, CSP location, public env prefix, dev port and build output.
+- Evals for an Astro pre-launch audit and a Hugo quick check.
+
+### Changed
+
+- `csp_hosts.py` finds the CSP in `next.config`, `vercel.json`, `netlify.toml`, `_headers` files, Nuxt, Astro and Svelte configs, `firebase.json`, `staticwebapp.config.json` and `<meta http-equiv>` in HTML layouts.
+- `launch_content.py` flags starter leftovers for Vite, Astro, SvelteKit, Nuxt, Remix, CRA and Gatsby, not only create-next-app.
+- `smoke_test.py` checks first-party assets for any framework (`/_next/`, `/_astro/`, `/_nuxt/`, `/_app/immutable/`, `/assets/`, …).
+- The references label Next.js-specific checks as the Next.js case and point to `frameworks.md` for the other stacks; the Playwright scaffold lists the dev port per stack.
+- README, plugin description and keywords are stack-neutral; plugin version 1.3.0.
+
 ## [1.2.0] - 2026-11-20
 
 ### Added

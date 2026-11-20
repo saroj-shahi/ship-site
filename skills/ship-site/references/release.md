@@ -8,7 +8,7 @@ Before every commit:
 ```bash
 git status --short
 ```
-Unstage `next-env.d.ts`, `package-lock.json` (in a yarn/pnpm repo), `.env*`, `test-results/`, `playwright-report/`, `.next/`. Stage files by name, not `git add -A`.
+Unstage `next-env.d.ts`, `package-lock.json` (in a yarn/pnpm repo), `.env*`, `test-results/`, `playwright-report/`, the build output (`.next/` for Next.js; others in `frameworks.md`). Stage files by name, not `git add -A`.
 
 ## Whose workflow wins
 

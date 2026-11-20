@@ -33,6 +33,10 @@ Use only the section for the host step 0 detected. Each command or console actio
 
 **Cloudflare Workers (OpenNext).** `npx wrangler deployments list` (or `npx wrangler versions list`) to find the last good version, then `npx wrangler rollback <version-id> --message "rollback vX.Y.Z"`. A rollback restores code and config, not data in bound resources (KV, D1, R2), and secrets changed since then stay changed. The next Workers Build from git redeploys the broken commit, so sync git before then.
 
+**Firebase Hosting.** Console → Hosting → Release history → the last good release → **Rollback**. Previous releases can also be cloned to live with `firebase hosting:clone` (check `firebase hosting:clone --help` for the source syntax). The next `firebase deploy` replaces live again, so revert or fix forward in git first.
+
+**GitHub Pages.** Re-run the deploy workflow on the last good commit (Actions → the run → Re-run), or revert in git and let the workflow redeploy. There is no instant swap; expect the length of a build.
+
 **Unknown host or no access.** Use the revert route, or ask the user to roll back in their console and give them the exact build or commit to restore.
 
 ## 4. Revert route

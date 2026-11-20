@@ -10,7 +10,7 @@ Run `scripts/launch_content.py <repo> [--legacy-host <old-host>]`. Triage every 
 |---|---|
 | `[TBD …]`, "replace before launch", lorem ipsum, "sample/dummy content" rendered on a page | Blocker |
 | "To confirm:" or open questions on a legal page | Blocker. Legal copy is the client's call: list the open items, don't write the answers |
-| Starter assets (`public/next.svg`, `vercel.svg`), "Create Next App" title | Should-fix (Blocker if it's the visible title or favicon) |
+| Starter assets (Next.js case: `public/next.svg`, `vercel.svg`, "Create Next App" title; other stacks' starter leftovers are flagged by the script too, see `frameworks.md`) | Should-fix (Blocker if it's the visible title or favicon) |
 | Stand-in data (`@example.com`, 555 numbers) in a file production imports | Blocker if it renders, else Nice-to-have |
 | Hit in a dev-only stand-in, input hint, or code path that never renders | Not a finding. Say why in one line |
 
@@ -20,7 +20,7 @@ Placeholder media counts too: a stock "demo" video, a YouTube link used to show 
 
 ## 2. Identity and sharing
 
-- **Favicon and app icons** are the brand's, not the create-next-app default (the script flags a 25,931-byte `app/favicon.ico`). `icon.png` / `apple-icon.png` present; manifest icons resolve.
+- **Favicon and app icons** are the brand's, not the starter default (Next.js case: the script flags a 25,931-byte `app/favicon.ico`). `icon.png` / `apple-icon.png` present; manifest icons resolve.
 - **OG share image** reflects the *current* hero copy and brand. If the headline changed this release, the image probably needs regenerating. Open it: `curl -sI <og-url>` plus a look at the image.
 - Title template is consistent across pages (`%s | Brand` or `%s — Brand`, one form only), defined once in the root layout, not repeated per page.
 
@@ -58,5 +58,5 @@ Check these in the step-8 screenshots, not in source:
 If the repo is going to a client or another team:
 - Docs are the standard set (README, CONTRIBUTING, architecture/design-system docs, CHANGELOG, AGENTS/CLAUDE.md). Internal planning notes, phase plans, AI session notes and pricing discussions belong elsewhere. Flag them; don't delete them.
 - Docs describe the stack as it is now: host, package manager, branch names, CI. A doc that still says Vercel when the repo deploys to Amplify is a Should-fix (step 1 checks this).
-- `.gitignore` covers `.DS_Store`, `.env*`, `.next/`, `.open-next/`, `.vercel/`, test output, and the lockfiles of package managers the repo doesn't use.
+- `.gitignore` covers `.DS_Store`, `.env*`, the framework's build output (Next.js case: `.next/`, `.open-next/`; others in `frameworks.md`), `.vercel/`, test output, and the lockfiles of package managers the repo doesn't use.
 - No unused assets (images nothing references). `grep -rl <basename> src app content` for each file in `public/` is enough for a candidate list.

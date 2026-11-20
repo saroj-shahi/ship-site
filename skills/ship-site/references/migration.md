@@ -1,20 +1,20 @@
 # Replatform parity (step 5b)
 
-Read this when the release **replaces an existing live site**: a WordPress-to-Next.js rebuild, a new repo taking over the same domain, a prototype promoted to production. Detect it in step 0 from the docs ("replace the current site", "cutover", an old domain) or ask once.
+Read this when the release **replaces an existing live site**: a WordPress-to-Next.js (or Astro, Hugo…) rebuild, a new repo taking over the same domain, a prototype promoted to production. Detect it in step 0 from the docs ("replace the current site", "cutover", an old domain) or ask once.
 
 The old site's search rankings live in its URLs, titles, descriptions and structured data. A rebuild that drops any of them can lose traffic the client earned over years, and nobody notices until the analytics dip.
 
 ## 1. URL inventory → every old URL has a destination
 
 1. Get the old URL list: the live `sitemap.xml` (WordPress/Yoast serve a sitemap index; the smoke script follows it), plus any URLs the client's SEO report or Search Console export names.
-2. Map each one to a new route or a 301. Redirects live in `next.config.*` `redirects()` or at the host (Amplify rewrites, `_redirects`, Cloudflare rules). Use one place, not both.
+2. Map each one to a new route or a 301. Redirects live in the framework config (Next.js case: `next.config.*` `redirects()`; others in `frameworks.md`) or at the host (Amplify rewrites, `_redirects`, Cloudflare rules). Use one place, not both.
 3. Prove it against staging:
    ```bash
    python3 "$SKILL_DIR/scripts/smoke_test.py" <staging-url> --env staging --routes / \
      --legacy-urls https://<old-host>/sitemap.xml --header "…"
    ```
    Fails: a 404, or a redirect that dumps to the home page (search engines treat that as a soft 404). A redirect chain passes but is listed. Point old URLs straight at their target.
-4. Trailing slashes: WordPress URLs end in `/`, Next.js strips it with a 308. That's one hop; fine. Don't add `trailingSlash: true` just to match.
+4. Trailing slashes: WordPress URLs end in `/`, Next.js strips it with a 308 (trailing-slash behaviour differs per stack, see `frameworks.md`). That's one hop; fine. Don't add `trailingSlash: true` just to match.
 
 ## 2. Carry over what ranks
 

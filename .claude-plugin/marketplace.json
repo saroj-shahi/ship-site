@@ -1,6 +1,6 @@
 {
   "name": "ship-site",
-  "description": "ship-site: a release-readiness skill for Next.js marketing sites.",
+  "description": "ship-site: a release-readiness skill for marketing sites (Next.js, Astro, Nuxt, SvelteKit, Hugo and more).",
   "owner": {
     "name": "Saroj Shahi",
     "url": "https://github.com/saroj-shahi"
@@ -9,8 +9,8 @@
     {
       "name": "ship-site",
       "source": "./",
-      "description": "Release-readiness orchestrator for Next.js marketing sites: parallel audits, real-browser verification, build gate, gated release flow, and post-deploy smoke tests with a go/no-go report.",
-      "version": "1.2.0"
+      "description": "Release-readiness orchestrator for marketing sites (Next.js, Astro, Nuxt, SvelteKit, Hugo and more): parallel audits, real-browser verification, build gate, gated release flow, and post-deploy smoke tests with a go/no-go report.",
+      "version": "1.3.0"
     }
   ]
 }

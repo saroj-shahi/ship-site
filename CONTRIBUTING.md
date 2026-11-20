@@ -7,10 +7,10 @@ Thanks for helping improve ship-site. Issues and pull requests are welcome.
 Open an issue with:
 
 - the mode you ran (`audit`, `quick`, `fix`, `release`, `smoke`, `rollback`, `status`, `resume`) and the agent and its version (Claude Code, Codex, Gemini CLI, Cursor, Copilot, OpenCode…)
-- the stack: Next.js version, package manager, host
+- the stack: framework and version (Next.js, Astro, Hugo…), package manager, host
 - what the skill did vs what you expected, ideally with the relevant part of the report
 
-For a false positive or a missed issue in a script, a minimal reproduction (a robots.txt, a `next.config` snippet, a response header) is the fastest path to a fix.
+For a false positive or a missed issue in a script, a minimal reproduction (a robots.txt, a `next.config` or other framework config snippet, a response header) is the fastest path to a fix.
 
 ## Making changes
 
@@ -31,6 +31,10 @@ For a false positive or a missed issue in a script, a minimal reproduction (a ro
 6. Add a line under `## [Unreleased]` in `CHANGELOG.md`.
 7. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages, e.g. `fix(smoke): handle HEAD-less CDNs`.
 
+## Adding a framework
+
+In `scripts/detect.py`, add an entry to the `FRAMEWORKS` table, a route function that lists the framework's routes, and its `APP_CHECKS` entries. Add a row to `skills/ship-site/references/frameworks.md` (route convention, SEO API, 404, sitemap and robots, CSP location, env prefix, dev port, build output) and a test in `tests/` against a small fixture repo.
+
 ## Writing guidance for the skill
 
 - **Explain the why.** "Never commit `next-env.d.ts` — `next build` rewrites it" generalizes better than a bare "NEVER".
@@ -41,7 +45,7 @@ For a false positive or a missed issue in a script, a minimal reproduction (a ro
 
 ## Testing the skill itself
 
-Script tests don't exercise the orchestration. For a behaviour change in `SKILL.md` or a reference file, run the prompts in `skills/ship-site/evals/evals.json` against a real Next.js repo, with and without your change, using the `skill-creator` eval loop. Summarize the difference in the PR. If the change touches host-specific behaviour (approvals, delegation, browser tooling), try at least one non-Claude agent too.
+Script tests don't exercise the orchestration. For a behaviour change in `SKILL.md` or a reference file, run the prompts in `skills/ship-site/evals/evals.json` against a real repo (Next.js, or the stack your change targets), with and without your change, using the `skill-creator` eval loop. Summarize the difference in the PR. If the change touches host-specific behaviour (approvals, delegation, browser tooling), try at least one non-Claude agent too.
 
 ## Releasing (maintainers)
 

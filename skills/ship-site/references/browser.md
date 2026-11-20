@@ -41,4 +41,4 @@ Open the showreel/video modal: plays, controls work, closes with Escape, focus r
 
 ## What goes in the report
 
-For each route: console error count, network failures, screenshot paths. Any CSP block → finding with the blocked URL, the directive, and the exact `next.config.*` line to change.
+For each route: console error count, network failures, screenshot paths. Any CSP block → finding with the blocked URL, the directive, and the exact line to change (Next.js: in `next.config.*`; where the CSP lives in other stacks: see `frameworks.md`).
