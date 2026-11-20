@@ -1,0 +1,31 @@
+{
+  "area": "launch-content",
+  "checked": ["placeholder copy", "create-next-app leftovers", "favicon", "OG image", "404/error pages", "form consent", "legacy links"],
+  "passed": ["custom 404 and error pages", "no links to the old site"],
+  "not_checked": [],
+  "findings": [
+    {
+      "severity": "blocker",
+      "title": "Privacy policy link points to a placeholder",
+      "file": "src/components/ContactForm.tsx",
+      "line": 87,
+      "problem": "The consent checkbox links to /privacy, which renders 'Privacy policy — TBD'. Collecting form data without a policy is not launchable.",
+      "fix": "Publish the client's privacy policy at /privacy.",
+      "evidence": "launch_content.py: src/app/privacy/page.tsx:6 bracketed placeholder [TBD]",
+      "verify": "launch_content.py exits 0; /privacy shows the final policy",
+      "owner": "owner",
+      "effort": "S"
+    },
+    {
+      "severity": "should-fix",
+      "title": "Default Next.js favicon still in place",
+      "file": "src/app/favicon.ico",
+      "problem": "favicon.ico is the create-next-app default.",
+      "fix": "Replace with the brand mark in 32 px and add apple-icon.png.",
+      "evidence": "launch_content.py: favicon.ico matches the create-next-app hash",
+      "verify": "launch_content.py exits 0",
+      "owner": "owner",
+      "effort": "S"
+    }
+  ]
+}

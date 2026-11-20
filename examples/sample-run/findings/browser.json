@@ -1,0 +1,29 @@
+{
+  "area": "browser",
+  "checked": [
+    "14 routes at 1440 and 375 px",
+    "console",
+    "network",
+    "hydration",
+    "contact form end to end"
+  ],
+  "passed": [
+    "28 screenshots, 0 hydration errors",
+    "no 4xx/5xx requests"
+  ],
+  "not_checked": [],
+  "findings": [
+    {
+      "severity": "blocker",
+      "title": "CSP connect-src missing forms.example.com",
+      "file": "next.config.ts",
+      "line": 41,
+      "problem": "ContactForm posts to https://forms.example.com; the CSP blocks it and the form fails silently.",
+      "fix": "Append https://forms.example.com to connect-src on line 41.",
+      "evidence": "screenshots/contact-375-submit.png; console: Refused to connect to 'https://forms.example.com' (connect-src)",
+      "verify": "csp_hosts.py exits 0 and the form submits with no CSP error at 1440 and 375 px",
+      "owner": "agent",
+      "effort": "S"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ Thanks for helping improve ship-site. Issues and pull requests are welcome.
 
 Open an issue with:
 
-- the mode you ran (`audit`, `fix`, `release`, `smoke`) the agent and its version (Claude Code, Codex, Gemini CLI, Cursor, Copilot, OpenCode…)
+- the mode you ran (`audit`, `quick`, `fix`, `release`, `smoke`, `rollback`, `status`, `resume`) and the agent and its version (Claude Code, Codex, Gemini CLI, Cursor, Copilot, OpenCode…)
 - the stack: Next.js version, package manager, host
 - what the skill did vs what you expected, ideally with the relevant part of the report
 

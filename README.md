@@ -44,11 +44,12 @@ It replaces the release checklist people run by hand and get wrong at 6pm on a F
 ## What's new
 
 > [!TIP]
-> ### Unreleased · Quick checks, scoped audits and rollback
+> ### v1.2 · Quick checks, scoped audits, rollback and a launch plan
 > - **`/ship-site quick`**: repo detection, content and CSP scans and the build gate in a few minutes, before you push.
 > - **Scoped audits**: `/ship-site audit seo,security` runs only those areas. A slice can find a NO-GO but never claims a GO.
 > - **`/ship-site rollback`**: production broke after a release? It restores the last good build (host rollback or git revert), smoke-tests it, and makes sure the next deploy doesn't re-ship the bug.
 > - **`/ship-site status`** and **monorepo support** (`--app apps/web`), powered by the new `detect.py`.
+> - **`plan.md`**: every report now comes with an ordered launch plan that splits agent fixes from owner inputs. See the [sample run](examples/sample-run).
 
 - **v1.1 · Launch content and replatform checks.** Placeholder copy, the default favicon, legacy links, and every URL of the site you're replacing checked on the new one.
 - **v1.1 · Every agent.** Codex, Gemini CLI, Cursor, Copilot and OpenCode, plus checkpoints and `/ship-site resume` for releases cut off by a usage limit.
@@ -172,6 +173,19 @@ Gates: lint ✅ · format ✅ · build ✅ · Playwright 96/96 ✅ (4 projects)
 Report: .ship-site/2026-10-26T14-02/report.md
 Plan:   .ship-site/2026-10-26T14-02/plan.md  (2 agent fixes · 0 owner inputs · re-run build)
 ```
+
+Every run writes two files you can hand to a developer or a client. These are real outputs from the [sample run](examples/sample-run) in this repo:
+
+<table>
+<tr>
+<td width="50%"><a href="examples/sample-run/report.md"><img src="./assets/readme/report.png" alt="report.md from the sample run: verdict NO-GO with 3 open Blockers, the shortest path to GO, a counts table by area and severity, all five gates passing, the detected stack, and the first Blocker, a CSP connect-src host missing"></a></td>
+<td width="50%"><a href="examples/sample-run/plan.md"><img src="./assets/readme/plan.png" alt="plan.md from the sample run: the path to GO, then checkbox tasks grouped as required and agent-fixable, required and needing the owner, and recommended, each with location, effort, a Do line and a Verify line"></a></td>
+</tr>
+<tr>
+<td align="center"><b><code>report.md</code></b>: the verdict, and the evidence behind it</td>
+<td align="center"><b><code>plan.md</code></b>: the ordered route to GO</td>
+</tr>
+</table>
 
 Findings are ranked **Blocker / Should-fix / Nice-to-have**. Each one has `file:line`, a code-level fix, evidence, an owner (agent, site owner, or a decision), an effort size and a verify step. IDs (`B1`, `S2`…) stay the same across re-runs, so "B2 is done" means the same thing in the report, the plan, a commit message and a chat with the client. The report also lists what **passed** and what was **not checked**, so a skipped audit can't pass for a clean one. A deterministic script builds both files, so the counts, IDs and verdict always agree. See [the report and plan format](skills/ship-site/references/report-format.md).
 
@@ -304,6 +318,7 @@ For a staging site behind basic auth, `smoke_test.py --header "Authorization: Ba
 ```
 .claude-plugin/          plugin.json + a single-plugin marketplace, so /plugin install works from this repo
 assets/                  brand marks and README art
+examples/sample-run/     a complete audit run: findings and gates in, report.md and plan.md out
 install.py               installs the skill for Codex, Gemini CLI, Cursor, Copilot, OpenCode, Claude Code
 skills/ship-site/
   SKILL.md               the orchestrator: modes, hard rules, steps 0–12, rollback
@@ -313,6 +328,7 @@ skills/ship-site/
   scripts/               detect, build_report, smoke_test, csp_hosts, launch_content
   evals/evals.json       prompts + assertions for skill-creator's eval loop
 tests/                   unit + end-to-end tests for the scripts
+tools/                   maintainer tools (re-render the README screenshots)
 ```
 
 `SKILL.md` stays short. The agent loads a reference file only when it reaches that step, which keeps the context cost low.

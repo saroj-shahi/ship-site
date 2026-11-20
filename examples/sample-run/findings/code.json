@@ -1,0 +1,3 @@
+{"area": "code", "checked": ["diff against develop: correctness, reuse"], "passed": ["no correctness issues in 23 changed files"], "not_checked": [], "findings": [
+  {"severity": "nice-to-have", "title": "Duplicate date formatter", "file": "src/lib/format.ts", "line": 3, "problem": "formatDate duplicates Intl logic already in src/lib/date.ts.", "fix": "Re-export from src/lib/date.ts.", "evidence": "code-review", "verify": "pnpm typecheck passes", "owner": "agent", "effort": "S"}
+]}

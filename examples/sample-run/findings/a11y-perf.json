@@ -1,0 +1,32 @@
+{
+  "area": "a11y-perf",
+  "checked": ["axe WCAG 2 A/AA on 14 routes", "keyboard and focus", "reduced motion", "contrast", "LCP/CLS", "image weight"],
+  "passed": ["axe: 0 violations on 13/14 routes", "CLS < 0.02 on every route", "reduced motion respected"],
+  "not_checked": [],
+  "findings": [
+    {
+      "severity": "should-fix",
+      "title": "Hero video is 14 MB on mobile",
+      "file": "src/components/Hero.tsx",
+      "line": 22,
+      "problem": "The same 1080p MP4 is served at 375 px; LCP on mobile is 4.1 s.",
+      "fix": "Add a 720p source with media=\"(max-width: 768px)\" and a poster image.",
+      "evidence": "lighthouse mobile: LCP 4.1 s; network: hero.mp4 14.2 MB",
+      "verify": "mobile LCP < 2.5 s on /",
+      "owner": "agent",
+      "effort": "M"
+    },
+    {
+      "severity": "nice-to-have",
+      "title": "Footer link contrast 4.2:1",
+      "file": "src/components/Footer.tsx",
+      "line": 9,
+      "problem": "text-neutral-500 on neutral-900 is 4.2:1, just under AA for small text.",
+      "fix": "Use text-neutral-400.",
+      "evidence": "axe color-contrast on /about",
+      "verify": "axe: 0 violations on /about",
+      "owner": "agent",
+      "effort": "S"
+    }
+  ]
+}

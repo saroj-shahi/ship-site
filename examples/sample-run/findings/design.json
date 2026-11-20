@@ -1,0 +1,1 @@
+{"area": "design", "checked": ["typography", "spacing", "touch targets", "motion"], "passed": ["touch targets ≥ 44 px", "type scale matches tokens"], "not_checked": ["dark mode: not supported by the site"], "findings": []}

@@ -17,6 +17,7 @@ body:
     attributes:
       label: Audit area
       options:
+        - Launch content
         - Security / CSP
         - SEO
         - Analytics
@@ -24,6 +25,8 @@ body:
         - Browser verification
         - Release flow
         - Smoke test
+        - Replatform / migration
+        - Rollback
         - Other
     validations:
       required: true

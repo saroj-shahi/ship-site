@@ -1,0 +1,20 @@
+{
+  "area": "analytics",
+  "checked": ["GA4 loads", "consent mode default + update", "trackEvent wrapper", "GA hosts in CSP", "staging property"],
+  "passed": ["consent default denied, update granted after accept (tested in browser)", "single trackEvent() wrapper"],
+  "not_checked": [],
+  "findings": [
+    {
+      "severity": "should-fix",
+      "title": "Staging sends hits to the production GA property",
+      "file": "src/app/layout.tsx",
+      "line": 31,
+      "problem": "NEXT_PUBLIC_GA_ID is the production ID in every environment.",
+      "fix": "Set a staging measurement ID on the host, or skip gtag unless SITE_ENV is production.",
+      "evidence": "staging network: collect?tid=G-PROD123",
+      "verify": "staging browser pass shows no hits to the production ID",
+      "owner": "decision",
+      "effort": "S"
+    }
+  ]
+}

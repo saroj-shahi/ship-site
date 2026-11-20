@@ -1,0 +1,24 @@
+{
+  "mode": "audit",
+  "repo": "studio-site",
+  "branch": "feat/launch",
+  "base": "develop",
+  "head_sha": "4f2c9e1",
+  "version": "v1.4.0",
+  "detected": {
+    "pm": "pnpm",
+    "host": "Vercel",
+    "base": "develop",
+    "routes": 14,
+    "diff": "+612/−140 in 23 files"
+  },
+  "release": {"steps": [
+    {"step": "Push the feature branch", "command": "git push -u origin feat/launch", "approval": true, "done": false},
+    {"step": "PR into develop", "command": "gh pr create --base develop --title \"feat: launch pages\"", "approval": true, "done": false},
+    {"step": "Smoke test staging", "command": "python3 $SKILL_DIR/scripts/smoke_test.py https://staging.example.com --env staging", "approval": false, "done": false},
+    {"step": "Bump version", "command": "pnpm release:minor", "approval": true, "done": false},
+    {"step": "Release PR into main", "command": "gh pr create --base main --head develop --title \"release: v1.4.0\"", "approval": true, "done": false},
+    {"step": "Tag and GitHub release", "command": "pnpm release:publish", "approval": true, "done": false},
+    {"step": "Smoke test production", "command": "python3 $SKILL_DIR/scripts/smoke_test.py https://www.example.com --env production --expect-build 4f2c9e1", "approval": false, "done": false}
+  ]}
+}
