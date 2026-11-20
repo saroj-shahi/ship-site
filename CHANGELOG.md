@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-20
+
 ### Added
 
 - Multi-stack support: Next.js, Astro, Nuxt, SvelteKit, Remix, React Router v7 (framework mode), Gatsby, Angular, Eleventy, Create React App, Vite SPAs (React, Vue, Svelte, Solid, Preact), Hugo, Jekyll and plain static HTML. Django, Rails, Laravel and WordPress are recognised by name, with routes found by crawling the running site.
@@ -97,7 +99,8 @@ First public release.
 - Organization-specific hosts and component names in references and evals were replaced with generic examples.
 - `smoke_test.py` parses robots.txt by user-agent group, so a `Disallow: /` for another bot no longer reads as production being blocked.
 
-[Unreleased]: https://github.com/saroj-shahi/ship-site/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/saroj-shahi/ship-site/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/saroj-shahi/ship-site/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/saroj-shahi/ship-site/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/saroj-shahi/ship-site/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/saroj-shahi/ship-site/releases/tag/v1.0.0
