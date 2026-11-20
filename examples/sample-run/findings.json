@@ -1,0 +1,189 @@
+{
+  "verdict": "NO-GO",
+  "reasons": [
+    "3 open Blockers (B1, B2, B3)"
+  ],
+  "scope": null,
+  "findings": [
+    {
+      "id": "B1",
+      "fingerprint": "6eb51c0a8efd",
+      "bucket": "blocker",
+      "severity": "blocker",
+      "area": "browser",
+      "sources": [
+        "browser",
+        "security"
+      ],
+      "title": "CSP connect-src missing forms.example.com",
+      "file": "next.config.ts",
+      "line": 41,
+      "problem": "ContactForm posts to https://forms.example.com; the CSP blocks it and the form fails silently.",
+      "fix": "Append https://forms.example.com to connect-src on line 41.",
+      "evidence": "screenshots/contact-375-submit.png; console: Refused to connect to 'https://forms.example.com' (connect-src)",
+      "verify": "csp_hosts.py exits 0 and the form submits with no CSP error at 1440 and 375 px",
+      "owner": "agent",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "B2",
+      "fingerprint": "86f5d8216fbb",
+      "bucket": "blocker",
+      "severity": "blocker",
+      "area": "seo",
+      "sources": [
+        "seo"
+      ],
+      "title": "/work/[slug] drops og:image",
+      "file": "src/app/work/[slug]/page.tsx",
+      "line": 18,
+      "problem": "generateMetadata sets openGraph: { title } without spreading the defaults. Next.js shallow-merges openGraph, so the layout's og:image is gone on every case study.",
+      "fix": "openGraph: { ...OG_DEFAULTS, title: project.title, url: `/work/${slug}` }",
+      "evidence": "curl http://localhost:3000/work/harbor | grep og:image \u2192 no match; screenshots/share-preview-work-harbor.png",
+      "verify": "og:image present on all 6 /work/* pages; smoke_test.py og check passes",
+      "owner": "agent",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "B3",
+      "fingerprint": "35944b89a279",
+      "bucket": "blocker",
+      "severity": "blocker",
+      "area": "launch-content",
+      "sources": [
+        "launch-content"
+      ],
+      "title": "Privacy policy link points to a placeholder",
+      "file": "src/components/ContactForm.tsx",
+      "line": 87,
+      "problem": "The consent checkbox links to /privacy, which renders 'Privacy policy \u2014 TBD'. Collecting form data without a policy is not launchable.",
+      "fix": "Publish the client's privacy policy at /privacy.",
+      "evidence": "launch_content.py: src/app/privacy/page.tsx:6 bracketed placeholder [TBD]",
+      "verify": "launch_content.py exits 0; /privacy shows the final policy",
+      "owner": "owner",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "S1",
+      "fingerprint": "970d71bf855b",
+      "bucket": "should-fix",
+      "severity": "should-fix",
+      "area": "seo",
+      "sources": [
+        "seo"
+      ],
+      "title": "Staging robots.txt allows indexing",
+      "file": "src/app/robots.ts",
+      "line": 4,
+      "problem": "robots.ts returns allow: / regardless of environment; staging.example.com is indexable.",
+      "fix": "Return disallow: / unless process.env.SITE_ENV === 'production'.",
+      "evidence": "curl https://staging.example.com/robots.txt \u2192 Allow: /",
+      "verify": "smoke_test.py --env staging robots check passes",
+      "owner": "agent",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "S2",
+      "fingerprint": "c11b838a0e93",
+      "bucket": "should-fix",
+      "severity": "should-fix",
+      "area": "a11y-perf",
+      "sources": [
+        "a11y-perf"
+      ],
+      "title": "Hero video is 14 MB on mobile",
+      "file": "src/components/Hero.tsx",
+      "line": 22,
+      "problem": "The same 1080p MP4 is served at 375 px; LCP on mobile is 4.1 s.",
+      "fix": "Add a 720p source with media=\"(max-width: 768px)\" and a poster image.",
+      "evidence": "lighthouse mobile: LCP 4.1 s; network: hero.mp4 14.2 MB",
+      "verify": "mobile LCP < 2.5 s on /",
+      "owner": "agent",
+      "effort": "M",
+      "status": "open"
+    },
+    {
+      "id": "S3",
+      "fingerprint": "25aad37f10f6",
+      "bucket": "should-fix",
+      "severity": "should-fix",
+      "area": "analytics",
+      "sources": [
+        "analytics"
+      ],
+      "title": "Staging sends hits to the production GA property",
+      "file": "src/app/layout.tsx",
+      "line": 31,
+      "problem": "NEXT_PUBLIC_GA_ID is the production ID in every environment.",
+      "fix": "Set a staging measurement ID on the host, or skip gtag unless SITE_ENV is production.",
+      "evidence": "staging network: collect?tid=G-PROD123",
+      "verify": "staging browser pass shows no hits to the production ID",
+      "owner": "decision",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "S4",
+      "fingerprint": "933f8d9e8058",
+      "bucket": "should-fix",
+      "severity": "should-fix",
+      "area": "launch-content",
+      "sources": [
+        "launch-content"
+      ],
+      "title": "Default Next.js favicon still in place",
+      "file": "src/app/favicon.ico",
+      "problem": "favicon.ico is the create-next-app default.",
+      "fix": "Replace with the brand mark in 32 px and add apple-icon.png.",
+      "evidence": "launch_content.py: favicon.ico matches the create-next-app hash",
+      "verify": "launch_content.py exits 0",
+      "owner": "owner",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "N1",
+      "fingerprint": "7ccaafc9b6a0",
+      "bucket": "nice-to-have",
+      "severity": "nice-to-have",
+      "area": "a11y-perf",
+      "sources": [
+        "a11y-perf"
+      ],
+      "title": "Footer link contrast 4.2:1",
+      "file": "src/components/Footer.tsx",
+      "line": 9,
+      "problem": "text-neutral-500 on neutral-900 is 4.2:1, just under AA for small text.",
+      "fix": "Use text-neutral-400.",
+      "evidence": "axe color-contrast on /about",
+      "verify": "axe: 0 violations on /about",
+      "owner": "agent",
+      "effort": "S",
+      "status": "open"
+    },
+    {
+      "id": "N2",
+      "fingerprint": "3f98247252d4",
+      "bucket": "nice-to-have",
+      "severity": "nice-to-have",
+      "area": "code",
+      "sources": [
+        "code"
+      ],
+      "title": "Duplicate date formatter",
+      "file": "src/lib/format.ts",
+      "line": 3,
+      "problem": "formatDate duplicates Intl logic already in src/lib/date.ts.",
+      "fix": "Re-export from src/lib/date.ts.",
+      "evidence": "code-review",
+      "verify": "pnpm typecheck passes",
+      "owner": "agent",
+      "effort": "S",
+      "status": "open"
+    }
+  ]
+}

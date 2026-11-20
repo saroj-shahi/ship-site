@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - `status` mode: a read-only summary of the latest run (verdict, open IDs, owner inputs, release progress, next step).
 - `--app <path>` for a Next.js app inside a monorepo; gates run through the workspace filter.
 - Evals for a scoped audit, quick mode, a production rollback and a monorepo pre-launch check.
+- `examples/sample-run/`: a complete audit run (findings and gates in, `report.md` and `plan.md` out), with screenshots of both in the README.
+- A pull request template.
 
 - `build_report.py`: merges each audit's findings JSON and `gates.json` into `report.md`, `plan.md` and `findings.json`. It dedupes findings raised by several audits, assigns IDs (`B1`, `S2`, `N3`, `K1`) that stay stable across re-runs, and computes the verdict (NO-GO, GO pending, or GO). With `--previous`, it reports new, resolved and still-open findings since an earlier run.
 - `plan.md`, the ordered route to GO: Blockers the agent can fix, Blockers waiting on the owner, recommended fixes, owner inputs to request, gates to re-run, release steps from `state.json` (approvals marked ⏸), and a post-launch backlog.

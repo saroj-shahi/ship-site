@@ -173,6 +173,19 @@ Report: .ship-site/2026-10-26T14-02/report.md
 Plan:   .ship-site/2026-10-26T14-02/plan.md  (2 agent fixes · 0 owner inputs · re-run build)
 ```
 
+Every run writes two files you can hand to a developer or a client. These are real outputs from the [sample run](examples/sample-run) in this repo:
+
+<table>
+<tr>
+<td width="50%"><a href="examples/sample-run/report.md"><img src="./assets/readme/report.png" alt="report.md from the sample run: verdict NO-GO with 3 open Blockers, the shortest path to GO, a counts table by area and severity, all five gates passing, the detected stack, and the first Blocker, a CSP connect-src host missing"></a></td>
+<td width="50%"><a href="examples/sample-run/plan.md"><img src="./assets/readme/plan.png" alt="plan.md from the sample run: the path to GO, then checkbox tasks grouped as required and agent-fixable, required and needing the owner, and recommended, each with location, effort, a Do line and a Verify line"></a></td>
+</tr>
+<tr>
+<td align="center"><b><code>report.md</code></b>: the verdict, and the evidence behind it</td>
+<td align="center"><b><code>plan.md</code></b>: the ordered route to GO</td>
+</tr>
+</table>
+
 Findings are ranked **Blocker / Should-fix / Nice-to-have**. Each one has `file:line`, a code-level fix, evidence, an owner (agent, site owner, or a decision), an effort size and a verify step. IDs (`B1`, `S2`…) stay the same across re-runs, so "B2 is done" means the same thing in the report, the plan, a commit message and a chat with the client. The report also lists what **passed** and what was **not checked**, so a skipped audit can't pass for a clean one. A deterministic script builds both files, so the counts, IDs and verdict always agree. See [the report and plan format](skills/ship-site/references/report-format.md).
 
 ## What it checks
@@ -304,6 +317,7 @@ For a staging site behind basic auth, `smoke_test.py --header "Authorization: Ba
 ```
 .claude-plugin/          plugin.json + a single-plugin marketplace, so /plugin install works from this repo
 assets/                  brand marks and README art
+examples/sample-run/     a complete audit run: findings and gates in, report.md and plan.md out
 install.py               installs the skill for Codex, Gemini CLI, Cursor, Copilot, OpenCode, Claude Code
 skills/ship-site/
   SKILL.md               the orchestrator: modes, hard rules, steps 0–12, rollback

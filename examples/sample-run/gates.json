@@ -1,0 +1,7 @@
+{
+  "lint": {"status": "pass", "log": "logs/lint.log"},
+  "format": {"status": "pass", "log": "logs/format.log"},
+  "typecheck": {"status": "pass", "log": "logs/typecheck.log"},
+  "build": {"status": "pass", "log": "logs/build.log"},
+  "playwright": {"status": "pass", "detail": "96/96 across 4 projects", "log": "logs/playwright.log"}
+}

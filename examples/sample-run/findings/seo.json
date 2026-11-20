@@ -1,0 +1,32 @@
+{
+  "area": "seo",
+  "checked": ["per-route metadata", "OG/Twitter merge", "sitemap", "robots per env", "canonical", "JSON-LD", "heading outline", "alt text"],
+  "passed": ["sitemap.xml lists all 14 routes", "canonical host www.example.com", "one h1 per page"],
+  "not_checked": [],
+  "findings": [
+    {
+      "severity": "blocker",
+      "title": "/work/[slug] drops og:image",
+      "file": "src/app/work/[slug]/page.tsx",
+      "line": 18,
+      "problem": "generateMetadata sets openGraph: { title } without spreading the defaults. Next.js shallow-merges openGraph, so the layout's og:image is gone on every case study.",
+      "fix": "openGraph: { ...OG_DEFAULTS, title: project.title, url: `/work/${slug}` }",
+      "evidence": "curl http://localhost:3000/work/harbor | grep og:image → no match; screenshots/share-preview-work-harbor.png",
+      "verify": "og:image present on all 6 /work/* pages; smoke_test.py og check passes",
+      "owner": "agent",
+      "effort": "S"
+    },
+    {
+      "severity": "should-fix",
+      "title": "Staging robots.txt allows indexing",
+      "file": "src/app/robots.ts",
+      "line": 4,
+      "problem": "robots.ts returns allow: / regardless of environment; staging.example.com is indexable.",
+      "fix": "Return disallow: / unless process.env.SITE_ENV === 'production'.",
+      "evidence": "curl https://staging.example.com/robots.txt → Allow: /",
+      "verify": "smoke_test.py --env staging robots check passes",
+      "owner": "agent",
+      "effort": "S"
+    }
+  ]
+}

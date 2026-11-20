@@ -8,8 +8,12 @@ body:
       label: Area
       options:
         - Skill (SKILL.md / references)
+        - detect.py
+        - build_report.py
         - smoke_test.py
         - csp_hosts.py
+        - launch_content.py
+        - install.py
         - Plugin install / packaging
     validations:
       required: true
