@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Diff external hosts referenced in source against the CSP in next.config.*.
+"""Diff external hosts referenced in source against the site's Content-Security-Policy.
 
 A host missing from the CSP is blocked silently by the browser at runtime — no
 build error. This finds candidates statically; confirm in the browser console.
 
 Usage:
-  csp_hosts.py [repo_dir] [--config next.config.ts] [--src src] [--json]
+  csp_hosts.py [repo_dir] [--config <file>] [--src src] [--json]
+
+Where the CSP is looked for, first hit wins (the others are listed as `other_sources`):
+  next.config.*, nuxt.config.*, astro.config.*, svelte.config.* (kit.csp.directives),
+  vercel.json, netlify.toml, _headers (root, public/, static/, src/), firebase.json,
+  staticwebapp.config.json, then <meta http-equiv="Content-Security-Policy"> in HTML
+  layouts (index.html, src/app.html, layouts/, _layouts/, _includes/, src/layouts/).
+Object-style directives ({'script-src': ['self', 'https://x']}) are understood too.
 
 Output:
   missing  host the code references but no CSP directive allows (per guessed directive)
@@ -25,10 +32,12 @@ import sys
 from pathlib import Path
 
 URL_RE = re.compile(r"""https?://([a-z0-9.-]+\.[a-z]{2,})(?::\d+)?(/[^\s"'`)<>]*)?""", re.I)
-SRC_EXT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".css", ".json"}
+SRC_EXT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".css", ".json", ".astro", ".vue", ".svelte", ".html",
+           ".njk", ".liquid", ".hbs", ".mdx", ".md", ".erb", ".php"}
 # Hosts that appear in code only as identifiers/docs, never fetched by the browser.
 IGNORE = {
-    "www.w3.org", "schema.org", "nextjs.org", "github.com", "reactjs.org", "react.dev",
+    "www.w3.org", "schema.org", "nextjs.org", "github.com", "reactjs.org", "react.dev", "astro.build",
+    "nuxt.com", "svelte.dev", "kit.svelte.dev", "vuejs.org", "vitejs.dev", "vite.dev", "gohugo.io",
     "developer.mozilla.org", "tailwindcss.com", "localhost", "example.com",
     "fonts.googleapis.com",  # only relevant if actually <link>ed — next/font self-hosts
 }
@@ -40,10 +49,21 @@ KNOWN_RUNTIME = {
     "*.google-analytics.com", "*.analytics.google.com",
 }
 # Server-side-only paths: fetches from these never hit the browser CSP.
-SERVER_HINTS = ("/app/api/", "route.ts", "route.js", "/server/", "server-only", ".server.")
+SERVER_HINTS = ("/app/api/", "/pages/api/", "route.ts", "route.js", "/server/", "server-only", ".server.",
+                "+server.", "+page.server.", "+layout.server.")
 # Tests and stories never ship to the browser.
 NON_SHIPPING = (".test.", ".spec.", ".stories.", "/__tests__/", "/__mocks__/", "/e2e/")
-SKIP_DIRS = {"node_modules", ".next", "dist", "build", "out", "coverage"}
+SKIP_DIRS = {"node_modules", ".next", ".nuxt", ".output", ".svelte-kit", ".astro", ".git", "dist", "build", "out",
+             "_site", "coverage", "vendor", "resources"}
+CONFIGS = ("next.config.ts", "next.config.mjs", "next.config.js", "next.config.cjs",
+           "nuxt.config.ts", "nuxt.config.js", "nuxt.config.mjs",
+           "astro.config.mjs", "astro.config.ts", "astro.config.js",
+           "svelte.config.js", "svelte.config.mjs", "svelte.config.ts",
+           "vercel.json", "netlify.toml", "_headers", "public/_headers", "static/_headers", "src/_headers",
+           "firebase.json", "staticwebapp.config.json", "public/staticwebapp.config.json")
+LAYOUT_GLOBS = ("index.html", "src/app.html", "src/index.html", "public/index.html", "app/root.tsx", "app/root.jsx",
+                "layouts/**/*.html", "_layouts/*.html", "_includes/*.html", "src/_includes/**/*.njk",
+                "src/layouts/**/*.astro", "src/app/layout.tsx", "app.vue", "app/app.vue")
 
 
 def source_files(src_dirs: list[Path]):
@@ -74,25 +94,66 @@ def guess_directive(line: str) -> str | None:
     return None
 
 
+NAMES = r"(?:default|script|style|img|font|connect|media|frame|worker|child|object|manifest|form-action|base-uri|frame-ancestors)[a-z-]*"
+KEYWORDS = {"self", "none", "unsafe-inline", "unsafe-eval", "strict-dynamic", "unsafe-hashes", "wasm-unsafe-eval",
+            "report-sample", "inline-speculation-rules"}
+
+
+def add_sources(directives: dict[str, set[str]], name: str, tokens) -> None:
+    hosts = set()
+    for tok in tokens:
+        tok = tok.strip().strip(";,").strip("'\"")
+        if not tok or tok.lower() in KEYWORDS or tok.endswith(":") or tok.startswith(("nonce-", "sha256-", "sha384-", "sha512-")):
+            continue
+        tok = re.sub(r"^(https?|wss?)://", "", tok).split("/")[0]
+        if tok and ("." in tok or tok == "*" or tok.startswith("localhost")):
+            hosts.add(tok.lower())
+    directives.setdefault(name, set()).update(hosts)
+
+
+def parse_policy(policy: str, directives: dict[str, set[str]]) -> None:
+    """`default-src 'self'; img-src https://x` → directives (a whole policy, or one directive)."""
+    for part in policy.split(";"):
+        toks = part.split()
+        if toks and re.fullmatch(NAMES, toks[0]):
+            add_sources(directives, toks[0], toks[1:])
+
+
 def parse_csp(config_text: str) -> dict[str, set[str]]:
-    # Grab every "directive-name source source" string literal fragment.
     directives: dict[str, set[str]] = {}
-    names = r"(?:default|script|style|img|font|connect|media|frame|worker|child|object|manifest|form-action|base-uri|frame-ancestors)[a-z-]*"
-    # One pattern per quote type: CSP sources contain single quotes ('self'), so
-    # a mixed-quote character class would stop at the first one.
-    pats = [rf'"({names})\s+([^"]*)"', rf"`({names})\s+([^`]*)`", rf"'({names})\s+((?:[^']|'(?:self|none|unsafe-[a-z-]+|strict-dynamic|nonce-[^']+|sha\d+-[^']+)')*)'"]
+    # String literals that start with a directive name. One pattern per quote type: CSP
+    # sources contain single quotes ('self'), so a mixed-quote class would stop at the first.
+    pats = [rf'"({NAMES}\s+[^"]*)"', rf"`({NAMES}\s+[^`]*)`",
+            rf"'({NAMES}\s+(?:[^']|'(?:self|none|unsafe-[a-z-]+|strict-dynamic|nonce-[^']+|sha\d+-[^']+)')*)'"]
     for m in (m for p in pats for m in re.finditer(p, config_text)):
-        name, sources = m.group(1), m.group(2)
-        hosts = set()
-        for tok in sources.split():
-            tok = tok.strip(";")
-            if tok.startswith("'") or tok.endswith(":"):
-                continue
-            tok = re.sub(r"^https?://", "", tok).split("/")[0]
-            if tok:
-                hosts.add(tok.lower())
-        directives.setdefault(name, set()).update(hosts)
+        parse_policy(m.group(1), directives)
+    # Unquoted header lines: `_headers` files, TOML/YAML keys (Content-Security-Policy = "...").
+    for m in re.finditer(r"Content-Security-Policy\s*[:=]\s*(.+)", config_text, re.I):
+        parse_policy(m.group(1).strip().strip("'\"`,"), directives)
+    # Object form: SvelteKit kit.csp.directives, nuxt-security, helmet.
+    for m in re.finditer(rf"[\"']?({NAMES})[\"']?\s*:\s*\[([^\]]*)\]", config_text):
+        add_sources(directives, m.group(1), [t.strip().strip("\"'`") for t in m.group(2).split(",")])
+    for m in re.finditer(rf"[\"']({NAMES})[\"']\s*:\s*[\"'`]([^\"'`]*(?:'[a-z-]+'[^\"'`]*)*)[\"'`]", config_text):
+        add_sources(directives, m.group(1), m.group(2).split())
     return directives
+
+
+def find_csp(repo: Path) -> tuple[Path | None, dict[str, set[str]], list[str]]:
+    """First file that carries a CSP, its directives, and any other files that also carry one."""
+    candidates = [repo / c for c in CONFIGS if (repo / c).is_file()]
+    for g in LAYOUT_GLOBS:
+        candidates += sorted(p for p in repo.glob(g) if p.is_file() and not SKIP_DIRS.intersection(p.relative_to(repo).parts))
+    hits = []
+    for c in dict.fromkeys(candidates):
+        text = c.read_text(errors="replace")
+        if c.suffix in (".html", ".njk", ".astro", ".tsx", ".jsx", ".vue") and "content-security-policy" not in text.lower():
+            continue  # a layout only counts when it sets the CSP meta tag
+        d = parse_csp(text)
+        if d:
+            hits.append((c, d))
+    if not hits:
+        return None, {}, []
+    return hits[0][0], hits[0][1], [h[0].relative_to(repo).as_posix() for h in hits[1:]]
 
 
 def allowed(host: str, sources: set[str]) -> bool:
@@ -103,7 +164,7 @@ def allowed(host: str, sources: set[str]) -> bool:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Diff external hosts referenced in source against the CSP in next.config.*.")
+    ap = argparse.ArgumentParser(description="Diff external hosts referenced in source against the site's CSP.")
     ap.add_argument("repo", nargs="?", default=".")
     ap.add_argument("--config")
     ap.add_argument("--src", default=None)
@@ -113,18 +174,26 @@ def main() -> int:
     a = ap.parse_args()
 
     repo = Path(a.repo).resolve()
-    cfg = Path(a.config) if a.config else next(
-        (repo / f for f in ("next.config.ts", "next.config.mjs", "next.config.js") if (repo / f).exists()), None)
-    if not cfg or not cfg.exists():
-        print("No next.config.* found — pass --config", file=sys.stderr)
-        return 2
-    csp = parse_csp(cfg.read_text())
+    others: list[str] = []
+    if a.config:
+        cfg = Path(a.config)
+        if not cfg.exists():
+            print(f"--config {cfg}: not found", file=sys.stderr)
+            return 2
+        csp = parse_csp(cfg.read_text(errors="replace"))
+    else:
+        cfg, csp, others = find_csp(repo)
     if not csp:
-        print(f"No CSP directives found in {cfg} (headers may be set by the host — check the live response)", file=sys.stderr)
+        print(f"No CSP directives found {'in ' + str(cfg) if cfg else 'in any known config, headers file or layout'}"
+              " (the host or a server may set it: check the live response headers, or pass --config)", file=sys.stderr)
         return 2
     default = csp.get("default-src", set())
 
-    src_dirs = [repo / a.src] if a.src else [d for d in (repo / n for n in ("src", "app", "pages", "components", "lib")) if d.exists()]
+    src_dirs = [repo / a.src] if a.src else [d for d in (repo / n for n in (
+        "src", "app", "pages", "components", "lib", "layouts", "_layouts", "_includes", "templates", "content",
+        "resources/views")) if d.is_dir()]
+    if not src_dirs:  # plain static site: the HTML lives at the root
+        src_dirs = [repo]
     files = list(source_files(src_dirs))
     refs: dict[str, dict] = {}
     for f in files:
@@ -156,6 +225,13 @@ def main() -> int:
     for f in files:
         for m in re.finditer(r"""site_?url\s*[:=]\s*["'`]https?://([a-z0-9.-]+)""", f.read_text(errors="replace"), re.I):
             self_hosts.add(m.group(1).lower())
+    # Site URL in framework config: Astro `site`, Hugo `baseURL`, Jekyll `url`, Nuxt `site.url`, Gatsby `siteUrl`.
+    for name in ("astro.config.mjs", "astro.config.ts", "hugo.toml", "hugo.yaml", "config.toml", "_config.yml",
+                 "nuxt.config.ts", "gatsby-config.js", "gatsby-config.ts"):
+        if (repo / name).is_file():
+            for m in re.finditer(r"""\b(site|siteUrl|baseURL|baseurl|url)\s*[:=]\s*["'`]?https?://([a-z0-9.-]+)""",
+                                 (repo / name).read_text(errors="replace"), re.I):
+                self_hosts.add(m.group(2).lower())
 
     missing, ok, mentioned = [], [], []
     for host, r in sorted(refs.items()):
@@ -177,7 +253,7 @@ def main() -> int:
         cfg_label = cfg.resolve().relative_to(repo).as_posix()
     except ValueError:  # --config outside the repo
         cfg_label = str(cfg)
-    out = {"config": cfg_label, "missing": missing, "unused": unused,
+    out = {"config": cfg_label, "other_sources": others, "missing": missing, "unused": unused,
            "ok": [o["host"] for o in ok],
            "mentioned_only": mentioned,
            "server_only": sorted(h for h, r in refs.items() if r["server_only"]),
@@ -186,6 +262,8 @@ def main() -> int:
         print(json.dumps(out, indent=2))
     else:
         print(f"CSP source: {out['config']}")
+        if others:
+            print(f"Also sets a CSP: {', '.join(others)} (browsers enforce every policy they receive: check they agree)")
         print(f"\nMISSING ({len(missing)}) — referenced in client code, not allowed by CSP:")
         for m in missing:
             print(f"  {m['host']:<36} needs {', '.join(m['missing_in'])}   e.g. {m['locations'][0]}")

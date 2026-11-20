@@ -171,6 +171,35 @@
         "Gates ran through the workspace filter or from the app directory, not against an unrelated package",
         "Report has an explicit verdict and plan.md exists"
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "pre-launch check for this Astro marketing site — is it ready to ship?",
+      "expected_output": "Detects Astro from the repo, lists routes from src/pages, runs the Astro build gate, and audits with the Astro equivalents: PUBLIC_ env prefix, @astrojs/sitemap, and the CSP in a _headers file or meta tag. Ends with a GO/NO-GO verdict and plan.md.",
+      "files": [],
+      "assertions": [
+        "Step-0 summary names Astro as the detected framework (not Next.js) and lists routes from src/pages",
+        "Secrets check looked for secrets in PUBLIC_ env vars, not only NEXT_PUBLIC_",
+        "Sitemap check looked for @astrojs/sitemap (or an equivalent sitemap) and a robots.txt",
+        "CSP was located in a _headers file or a <meta http-equiv> tag and checked against external hosts used in the source",
+        "No Next.js-only checks (next.config, metadata API, OG shallow-merge) were reported as findings",
+        "The build gate used the repo's own build script with the detected package manager",
+        "Report has an explicit verdict and plan.md exists"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "/ship-site quick on this Hugo site before I push",
+      "expected_output": "Detects Hugo, runs the quick-mode scans and the Hugo build gate without assuming a JS package manager, and reports a verdict for the quick checks only.",
+      "files": [],
+      "assertions": [
+        "Detected Hugo as the framework and listed routes from content/",
+        "Build gate ran `hugo --gc --minify` (or the repo's documented equivalent)",
+        "No npm, pnpm or yarn install or lockfile was assumed or required",
+        "launch_content and CSP scans were run, and a missing CSP was reported rather than guessed",
+        "No tracked files were modified (quick mode is read-only)",
+        "Result is framed as a quick check, not a full GO"
+      ]
     }
   ]
 }

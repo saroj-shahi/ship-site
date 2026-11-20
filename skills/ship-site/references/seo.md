@@ -2,9 +2,11 @@
 
 ## 1. Metadata on every route
 
+This section describes the Next.js metadata API; the SEO/metadata API, 404 page, sitemap and robots equivalents for other stacks are in `frameworks.md`. The checks (title, description, canonical, per-item metadata on dynamic routes) apply everywhere.
+
 For each `page.tsx` / `layout.tsx`: `export const metadata` or `generateMetadata` with `title`, `description` (50–160 chars), and `alternates.canonical`. Dynamic routes (`[slug]`) must use `generateMetadata` with per-item title/description. Duplicate titles across routes → Should-fix.
 
-## 2. The OG/Twitter shallow-merge trap
+## 2. The OG/Twitter shallow-merge trap (Next.js)
 
 Next.js **does not deep-merge** `openGraph` or `twitter` across segments. A page that declares `openGraph: { url: "/about" }` replaces the layout's whole object — `images`, `siteName`, `type`, `locale` vanish. No build error; `og:image` just disappears.
 
@@ -25,7 +27,7 @@ Every hit outside the root layout must contain `...OG_DEFAULTS` / `...TWITTER_DE
 
 ## 3. sitemap.ts + robots.ts
 
-- `src/app/sitemap.ts` lists every static route plus every dynamic item (from the same data module `generateStaticParams` uses). A route present in the app but missing from the sitemap → Should-fix.
+- (Next.js case; Astro uses `@astrojs/sitemap`, others in `frameworks.md`) `src/app/sitemap.ts` lists every static route plus every dynamic item (from the same data module `generateStaticParams` uses). A route present in the app but missing from the sitemap → Should-fix.
 - `src/app/robots.ts` exists, references the sitemap on production, disallows `/api/`.
 
 ## 4. Preview/staging must be noindex
@@ -53,7 +55,7 @@ Per route (check in the running page, not source — components compose):
 
 ## 7. Alt text
 
-- Every `<img>` / `next/image` has `alt`. Decorative images use `alt=""` (not missing).
+- Every `<img>` (Next.js: `next/image`) has `alt`. Decorative images use `alt=""` (not missing).
 - Alt describes content, isn't a filename, isn't "image of".
 ```js
 [...document.images].filter(i => !i.hasAttribute('alt')).map(i => i.src)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post-deploy HTTP smoke test for a Next.js marketing site.
+"""Post-deploy HTTP smoke test for a marketing site (any framework or static host).
 
 Checks per route: HTTP 200, og:image present (absolute URL), meta robots matches
 the environment. Site-wide: robots.txt matches the environment, CSP and security
@@ -50,6 +50,19 @@ def request_headers(url: str) -> dict[str, str]:
     if u.scheme == "https" and u.netloc == SITE_NETLOC:
         h.update(EXTRA_HEADERS)
     return h
+
+
+# Build-output prefixes per framework: Next, Astro, Nuxt, SvelteKit, Gatsby/CRA, Remix (classic), Vite/Remix/RR7.
+ASSET_PREFIXES = ("/_next/", "/_astro/", "/_nuxt/", "/_app/", "/static/", "/build/", "/assets/", "/page-data/")
+
+
+def first_party_assets(html: str, limit: int = 15) -> list[str]:
+    """Same-origin scripts and stylesheets the home page loads: framework build output first,
+    then any root-relative .js/.css (Hugo, Jekyll, Eleventy and hand-written sites)."""
+    refs = re.findall(r'(?:src|href)=["\'](/(?!/)[^"\'#]+)', html)
+    built = [r for r in refs if r.startswith(ASSET_PREFIXES) and re.search(r"\.(m?js|css)(\?|$)", r)]
+    other = [r for r in refs if r not in built and re.search(r"\.(m?js|css)(\?|$)", r)]
+    return sorted(set(built))[:limit] or sorted(set(other))[:limit]
 
 
 def fetch(url: str, method: str = "GET", timeout: int | None = None):
@@ -115,7 +128,7 @@ def discover_routes(base: str, env: str) -> list[str]:
     paths = {"/"}
     if status == 200:
         for href in re.findall(r'href=["\'](/[^"\'#?]*)', body):
-            if not href.startswith(("/_next", "/api", "/images", "/videos")) and "." not in href.rsplit("/", 1)[-1]:
+            if not href.startswith(ASSET_PREFIXES + ("/api", "/images", "/videos")) and "." not in href.rsplit("/", 1)[-1]:
                 paths.add(href.rstrip("/") or "/")
     return sorted(paths)
 
@@ -169,12 +182,12 @@ def parse_header(raw: str) -> tuple[str, str]:
 
 def main() -> int:
     global SITE_NETLOC, TIMEOUT
-    ap = argparse.ArgumentParser(description="Post-deploy HTTP smoke test for a Next.js marketing site.")
+    ap = argparse.ArgumentParser(description="Post-deploy HTTP smoke test for a marketing site.")
     ap.add_argument("base_url")
     ap.add_argument("--env", choices=["staging", "production"], required=True)
     ap.add_argument("--routes", help="comma-separated paths; default: discover")
     ap.add_argument("--json", help="write results JSON here")
-    ap.add_argument("--expect-build", help="string that must appear in the home HTML to prove the new deploy is live (e.g. short git SHA when generateBuildId uses it)")
+    ap.add_argument("--expect-build", help="string that must appear in the home HTML to prove the new deploy is live (e.g. the short git SHA when the build embeds it, such as Next's generateBuildId)")
     ap.add_argument("--canonical-host", help="host canonical links must point to (default: production host = base host when --env production)")
     ap.add_argument("--header", action="append", type=parse_header, default=[], metavar="'NAME: VALUE'",
                     help="extra request header for the site under test (repeatable), e.g. basic auth on staging")
@@ -245,7 +258,7 @@ def main() -> int:
             record("http redirects to https", False, str(e)[:120], "http://")
 
     # A handful of first-party static assets from the home page must load.
-    assets = sorted(set(re.findall(r'(?:src|href)=["\'](/_next/static/[^"\']+)', home_html)))[:15]
+    assets = first_party_assets(home_html)
     bad = [p for p in assets if fetch(urllib.parse.urljoin(base, p.lstrip("/")), method="HEAD")[0] not in (200, 304)]
     record("home static assets load", not bad, f"{len(assets) - len(bad)}/{len(assets)} ok" + (f"; failing: {bad[:3]}" if bad else ""), "/")
 

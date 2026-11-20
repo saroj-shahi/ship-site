@@ -2,7 +2,7 @@
 
 ## 1. GA4 loads
 
-- `gtag.js` loaded via `next/script` (strategy `afterInteractive`) in the root layout, with the measurement ID (`G-XXXX`). Hardcoded or from a `NEXT_PUBLIC_` var — both fine, a GA ID is public.
+- `gtag.js` loaded in the root layout (Next.js case: `next/script` with strategy `afterInteractive`; other stacks load it from their layout or head, see `frameworks.md`), with the measurement ID (`G-XXXX`). Hardcoded or from a public env var (`NEXT_PUBLIC_` in Next.js; the prefix per stack is in `frameworks.md`) — both fine, a GA ID is public.
 - In the browser (step 8): network shows `googletagmanager.com/gtag/js?id=G-…` 200 and at least one `google-analytics.com/g/collect` (or `analytics.google.com`) request after consent/page view. `window.gtag` and `window.dataLayer` exist.
 
 ## 2. Consent mode default

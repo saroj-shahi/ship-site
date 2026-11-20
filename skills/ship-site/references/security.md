@@ -12,9 +12,11 @@ python3 "$SKILL_DIR/scripts/csp_hosts.py" . --json
 - `unused` → allowlisted but never referenced. Nice-to-have removal, unless it's a known runtime-only host (GA sub-hosts, Vimeo CDN wildcards, Iconify fallback APIs `api.simplesvg.com`/`api.unisvg.com`) — note those as intentional.
 - The script is a heuristic: hosts built at runtime (template strings, SDKs that fetch internally) won't appear. Confirm against the browser console in step 8.
 - Check dev vs prod branches of the CSP: `'unsafe-eval'` must only appear under the dev branch.
-- `'unsafe-inline'` in `script-src` is common with GA + Next inline scripts; report as Nice-to-have (nonce migration) unless the user has asked to harden.
+- `'unsafe-inline'` in `script-src` is common with GA + framework inline scripts (Next.js hydration data, for one); report as Nice-to-have (nonce migration) unless the user has asked to harden.
 
-## 2. No secrets in `NEXT_PUBLIC_*`
+## 2. No secrets in public env vars (`NEXT_PUBLIC_*` in Next.js)
+
+This section shows the Next.js case. Public env prefixes per stack (`PUBLIC_`, `NUXT_PUBLIC_`, `VITE_`, `GATSBY_`, `REACT_APP_`…): see `frameworks.md`; apply the same grep with that prefix.
 
 ```bash
 grep -rn "NEXT_PUBLIC_" src app .env* next.config.* 2>/dev/null
@@ -24,7 +26,7 @@ Anything named `*_TOKEN`, `*_SECRET`, `*_KEY` (except known-public keys like a G
 
 ## 3. Security headers
 
-In `next.config.*` `headers()` (or host config), for `/(.*)`:
+In `next.config.*` `headers()` (Next.js case) or host config, for `/(.*)`. Where headers live in other stacks (`_headers`, `netlify.toml`, `firebase.json`, `staticwebapp.config.json`, framework config, `<meta http-equiv>`): see `frameworks.md`.
 
 | Header | Expect |
 |---|---|

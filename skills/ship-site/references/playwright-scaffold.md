@@ -4,6 +4,8 @@ Only in `fix` or no-arg mode. Install if missing: `<pm> add -D @playwright/test 
 
 ## playwright.config.ts (if missing)
 
+The dev port differs per stack: 3000 Next.js/Nuxt/CRA, 4321 Astro, 5173 Vite/SvelteKit/Remix/React Router, 8000 Gatsby, 4200 Angular, 8080 Eleventy, 1313 Hugo, 4000 Jekyll. Use the `dev_port` and `dev_cmd` from `detect.py` for `baseURL` and `webServer`; the config below shows Next.js (3000). Hugo, Jekyll and Eleventy dev commands aren't `<pm> dev`, so use the detected one.
+
 ```ts
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({

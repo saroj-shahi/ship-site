@@ -1,6 +1,6 @@
 # Accessibility & performance (step 7)
 
-Measure in the running dev server (or `next start` after build for perf numbers — dev mode inflates LCP/INP). Don't estimate from source.
+Measure in the running dev server (or the production preview after build, e.g. `next start` for Next.js, for perf numbers — dev mode inflates LCP/INP). Don't estimate from source. Dev ports and preview commands per stack: see `frameworks.md`.
 
 ## 1. axe on every route
 
@@ -53,7 +53,7 @@ find public src/assets -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.
 ```
 
 - Photographic images → webp/avif. PNGs >200KB that aren't transparency-critical → Should-fix.
-- Every `<img>` / `next/image` has explicit `width`/`height` (or aspect-ratio container). Missing → CLS risk.
+- Every `<img>` (Next.js: `next/image`; other stacks use their own image component or plain `<img>`) has explicit `width`/`height` (or aspect-ratio container). Missing → CLS risk.
 - Below-the-fold images `loading="lazy"`; hero not lazy.
 - Served size roughly matches rendered size (check `naturalWidth` vs `clientWidth × DPR` in the browser).
 

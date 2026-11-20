@@ -18,8 +18,8 @@ Don't hand-write `report.md` or `plan.md`. To change them, fix the inputs and re
 ```json
 {
   "area": "security",
-  "checked": ["CSP hosts", "NEXT_PUBLIC secrets", "headers", "form hardening", "server-only imports"],
-  "passed": ["HSTS max-age=63072000", "no NEXT_PUBLIC secrets"],
+  "checked": ["CSP hosts", "public env secrets", "headers", "form hardening", "server-only imports"],
+  "passed": ["HSTS max-age=63072000", "no public env secrets"],
   "not_checked": ["rate limiting on /api/contact: staging is behind auth we don't have"],
   "findings": [
     {

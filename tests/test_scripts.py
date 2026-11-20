@@ -416,9 +416,118 @@ class DetectCli(unittest.TestCase):
         (root / "yarn.lock").write_text("")
         res = run("detect.py", str(root), "--json")
         d = json.loads(res.stdout)
-        self.assertEqual((d["next"]["router"], d["pm"]["name"]), ("pages", "yarn"))
+        self.assertEqual((d["framework"]["name"], d["framework"]["router"], d["pm"]["name"]), ("next", "pages", "yarn"))
         self.assertEqual([r["url"] for r in d["routes"]], ["/", "/blog/[id]"])
         self.assertEqual(run("detect.py", str(self.root), "--app", "nope").returncode, 2)
+
+
+def make_tree(root: Path, files: dict[str, str]) -> None:
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+
+
+class DetectOtherStacks(unittest.TestCase):
+    """Each stack: framework name, routes from its own conventions, and its site files."""
+    DEFAULT = "export default function Page() {}"
+    CASES = {
+        "astro": ({"package.json": json.dumps({"dependencies": {"astro": "5.1.0", "@astrojs/sitemap": "3"}}),
+                   "astro.config.mjs": "export default {}", "src/pages/index.astro": "", "src/pages/about.md": "",
+                   "src/pages/blog/[slug].astro": "", "src/pages/_draft.astro": "", "src/pages/rss.xml.js": "",
+                   "src/pages/404.astro": "", "public/robots.txt": ""},
+                  ["/", "/about", "/blog/[slug]"], {"not-found": True, "sitemap": True, "robots": True}),
+        "nuxt": ({"package.json": json.dumps({"dependencies": {"nuxt": "3.13.0"}}), "pages/index.vue": "",
+                  "pages/(marketing)/about.vue": "", "pages/posts/[id].vue": "", "error.vue": ""},
+                 ["/", "/about", "/posts/[id]"], {"not-found": True, "sitemap": False}),
+        "sveltekit": ({"package.json": json.dumps({"devDependencies": {"@sveltejs/kit": "2", "vite": "5"}}),
+                       "src/routes/+page.svelte": "", "src/routes/(app)/pricing/+page.svelte": "",
+                       "src/routes/blog/[slug]/+page.svelte": "", "src/routes/api/x/+server.ts": "",
+                       "static/robots.txt": ""},
+                      ["/", "/pricing", "/blog/[slug]"], {"not-found": False, "robots": True}),
+        "remix": ({"package.json": json.dumps({"dependencies": {"@remix-run/react": "2", "vite": "5"}}),
+                   "app/root.tsx": "export function ErrorBoundary() {}", "app/routes/_index.tsx": DEFAULT,
+                   "app/routes/about.tsx": DEFAULT, "app/routes/blog.$slug.tsx": DEFAULT,
+                   "app/routes/_auth.login.tsx": DEFAULT, "app/routes/sitemap[.]xml.tsx": "export const loader = 1",
+                   "app/routes/contact/route.tsx": DEFAULT},
+                  ["/", "/about", "/contact", "/login", "/blog/:slug"], {"error": True, "sitemap": True}),
+        "vite": ({"package.json": json.dumps({"dependencies": {"react": "18"}, "devDependencies": {"vite": "5"}}),
+                  "index.html": "", "src/App.tsx": '<Route path="/" /><Route path="/pricing" /><Route path="*" />'},
+                 ["/", "/pricing"], {"robots": False}),
+        "hugo": ({"hugo.toml": 'baseURL = "https://acme.test/"', "content/_index.md": "",
+                  "content/about.md": '+++\ntitle = "About"\n+++\n', "content/posts/first.md": "---\nslug: hello\n---\n",
+                  "content/posts/wip.md": "---\ndraft: true\n---\n", "layouts/404.html": ""},
+                 ["/", "/about/", "/posts/hello/"], {"not-found": True, "sitemap": True}),
+        "jekyll": ({"_config.yml": "title: x", "Gemfile": 'gem "jekyll"\ngem "jekyll-sitemap"', "index.md": "---\n---\n",
+                    "about.md": "---\npermalink: /about/\n---\n", "contact.html": "---\n---\n", "README.md": "no front matter"},
+                   ["/", "/about/", "/contact.html"], {"sitemap": True, "not-found": False}),
+        "static": ({"index.html": "", "about.html": "", "blog/index.html": "", "404.html": ""},
+                   ["/", "/blog/", "/about.html"], {"not-found": True}),
+    }
+
+    def test_each_stack(self):
+        for name, (files, urls, site_files) in self.CASES.items():
+            with self.subTest(stack=name), tempfile.TemporaryDirectory() as tmp:
+                make_tree(Path(tmp), files)
+                res = run("detect.py", tmp, "--json")
+                self.assertEqual(res.returncode, 0, res.stderr)
+                d = json.loads(res.stdout)
+                self.assertEqual(d["framework"]["name"], name)
+                self.assertEqual(sorted(r["url"] for r in d["routes"]), sorted(urls))
+                for key, want in site_files.items():
+                    self.assertEqual(d["app_files"].get(key), want, key)
+
+    def test_non_js_stack_has_no_package_manager_and_a_default_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            make_tree(Path(tmp), self.CASES["hugo"][0])
+            d = json.loads(run("detect.py", tmp, "--json").stdout)
+            self.assertIsNone(d["pm"]["name"])
+            self.assertEqual(d["framework"]["build_cmd"], "hugo --gc --minify")
+            self.assertIn("hugo --gc --minify", run("detect.py", tmp).stdout)
+
+    def test_monorepo_prefers_meta_framework_over_vite_package(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            make_tree(Path(tmp), {
+                "package.json": json.dumps({"workspaces": ["apps/*", "packages/*"]}),
+                "apps/site/package.json": json.dumps({"dependencies": {"astro": "5"}}),
+                "apps/site/src/pages/index.astro": "",
+                "packages/ui/package.json": json.dumps({"devDependencies": {"vite": "5"}}),
+            })
+            d = json.loads(run("detect.py", tmp, "--json").stdout)
+            self.assertEqual((d["app"]["path"], d["framework"]["name"]), ("apps/site", "astro"))
+
+
+class OtherStackScripts(unittest.TestCase):
+    def test_csp_from_headers_file_and_sveltekit_config(self):
+        for files, cfg in (
+            ({"public/_headers": "/*\n  Content-Security-Policy: default-src 'self'; connect-src https://api.ok.test\n"},
+             "public/_headers"),
+            ({"svelte.config.js": "kit: { csp: { directives: { 'connect-src': ['self', 'https://api.ok.test'] } } }"},
+             "svelte.config.js"),
+            ({"index.html": '<meta http-equiv="Content-Security-Policy" content="connect-src https://api.ok.test">'},
+             "index.html"),
+        ):
+            with self.subTest(cfg=cfg), tempfile.TemporaryDirectory() as tmp:
+                make_tree(Path(tmp), {**files, "src/lib/api.ts": 'fetch("https://api.ok.test/x");\nfetch("https://new.test/y");\n'})
+                res = run("csp_hosts.py", tmp, "--json")
+                out = json.loads(res.stdout)
+                self.assertEqual(out["config"], cfg)
+                self.assertEqual([m["host"] for m in out["missing"]], ["new.test"])
+                self.assertIn("api.ok.test", out["ok"])
+
+    def test_starter_leftovers_for_vite_and_astro(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            make_tree(Path(tmp), {"index.html": "<title>Vite + React</title>", "public/vite.svg": "<svg/>",
+                                  "src/components/Welcome.astro": "", "README.md": "lorem ipsum"})
+            found = json.loads(run("launch_content.py", tmp, "--json").stdout)["findings"]
+            self.assertEqual({f["file"] for f in found},
+                             {"index.html", "public/vite.svg", "src/components/Welcome.astro"})
+
+    def test_smoke_assets_any_framework(self):
+        self.assertEqual(smoke_test.first_party_assets(
+            '<script src="/_astro/a.js"></script><link href="/_astro/b.css"><script src="//cdn.x.test/c.js">'),
+            ["/_astro/a.js", "/_astro/b.css"])
+        self.assertEqual(smoke_test.first_party_assets('<link rel="stylesheet" href="/css/main.css?v=2">'),
+                         ["/css/main.css?v=2"])
 
 
 class FakeSite(http.server.BaseHTTPRequestHandler):

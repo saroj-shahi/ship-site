@@ -1,6 +1,6 @@
 # Hosting differences
 
-Read only the section for the host detected in step 0.
+Read only the section for the host detected in step 0. Several sections below are written for Next.js (`next.config` headers, `x-nextjs`, SSR runtime); the host mechanics (headers files, preview detection, rollback) hold for other stacks, whose build commands and output are in `frameworks.md`.
 
 ## AWS Amplify (`amplify.yml`)
 
@@ -36,6 +36,33 @@ Read only the section for the host detected in step 0.
 - Headers: `next.config` headers apply via OpenNext. A `_headers` file in the assets dir applies to static assets only. Verify live.
 - Deploy status: `npx wrangler deployments list` if logged in, else the smoke script's `--expect-build`.
 - Add `.open-next/` and `.wrangler/` to `.gitignore`.
+
+## Other hosts
+
+**Firebase Hosting** (`firebase.json`)
+- Headers, redirects and rewrites are set in `firebase.json` (`hosting.headers`, `hosting.redirects`, `hosting.rewrites`).
+- Staging: preview channels, `firebase hosting:channel:deploy <channel-id>` (the channel URL is printed; channels expire).
+- Rollback: Hosting console → Release history → roll back to a previous release (see rollback.md).
+
+**Azure Static Web Apps** (`staticwebapp.config.json`)
+- Headers (`globalHeaders`), `routes`, `responseOverrides` and `navigationFallback` live in `staticwebapp.config.json`.
+- Staging: pull requests get their own preview environment from the deploy workflow.
+- Rollback: redeploy the last good commit through the workflow, or revert in git.
+
+**Render** (`render.yaml`)
+- For static sites, `headers` and `routes` (redirects and rewrites) are set in `render.yaml` or the dashboard.
+- Staging: pull request previews if enabled, or a separate service for the staging branch.
+- Rollback: dashboard → the service's deploys → roll back to an earlier deploy.
+
+**Fly.io** (`fly.toml`)
+- It runs your container, so headers and redirects come from the app or its web server, not `fly.toml`.
+- Staging: usually a second app (`fly deploy -a <staging-app>`). Confirm the app names from the repo's docs.
+- Rollback: `fly releases` then redeploy the previous image (see rollback.md).
+
+**GitHub Pages** (a deploy workflow in `.github/workflows/`)
+- No custom response headers: a CSP has to be a `<meta http-equiv>` tag, and server-side redirects aren't available (use framework redirects or meta refresh).
+- No built-in preview: staging is a separate repo, branch or site, or a local build. Check the live URL after the workflow finishes.
+- Rollback: re-run the deploy workflow on the last good commit, or revert in git and let it redeploy.
 
 ## Unknown host
 

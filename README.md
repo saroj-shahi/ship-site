@@ -31,7 +31,7 @@
 
 ## What it does
 
-Tell your agent *"is this ready to ship?"* It reads your Next.js marketing site, runs the design, code, security, SEO, analytics, accessibility and performance audits in parallel, clicks through every route in a real browser, runs your tests and build, and hands you a **GO / NO-GO** report and an ordered **launch plan**. Every claim in them carries evidence: a screenshot, a log line or a test name.
+Tell your agent *"is this ready to ship?"* It reads your marketing site (Next.js, Astro, Nuxt, SvelteKit, Hugo and [more](#supported-stacks)), runs the design, code, security, SEO, analytics, accessibility and performance audits in parallel, clicks through every route in a real browser, runs your tests and build, and hands you a **GO / NO-GO** report and an ordered **launch plan**. Every claim in them carries evidence: a screenshot, a log line or a test name.
 
 Say *"ship it"* and it carries on through staging, the version bump, the release PR, the tag and a post-deploy smoke test, stopping to ask before every step that leaves your machine.
 
@@ -55,6 +55,28 @@ It replaces the release checklist people run by hand and get wrong at 6pm on a F
 - **v1.1 · Every agent.** Codex, Gemini CLI, Cursor, Copilot and OpenCode, plus checkpoints and `/ship-site resume` for releases cut off by a usage limit.
 
 See the [CHANGELOG](CHANGELOG.md) for everything.
+
+## Supported stacks
+
+Next.js is the most deeply covered (metadata API, `next.config` CSP, App Router routes). Every other stack gets the same pipeline with its own route discovery, build gate, dev port and CSP location. The per-stack details live in [`references/frameworks.md`](skills/ship-site/references/frameworks.md).
+
+| Stack | Detected by | Routes from |
+|---|---|---|
+| Next.js | `next` dependency, `next.config.*` | `app/**/page.*` or `pages/` |
+| Astro | `astro` dependency, `astro.config.*` | `src/pages/` |
+| Nuxt | `nuxt` dependency, `nuxt.config.*` | `pages/` |
+| SvelteKit | `@sveltejs/kit`, `svelte.config.*` | `src/routes/` |
+| Remix | `@remix-run/*` dependencies | `app/routes/` |
+| React Router v7 (framework mode) | `@react-router/*`, `react-router.config.*` | `app/routes.ts` |
+| Gatsby | `gatsby` dependency, `gatsby-config.*` | `src/pages/` |
+| Angular | `@angular/core`, `angular.json` | router config |
+| Eleventy | `@11ty/eleventy` | content and template files |
+| Create React App | `react-scripts` dependency | router config |
+| Vite SPA (React, Vue, Svelte, Solid, Preact) | `vite` dependency, `vite.config.*` | router config |
+| Hugo | `hugo.toml` / `config.toml` | `content/` |
+| Jekyll | `_config.yml`, `Gemfile` | pages, collections and posts |
+| Plain static HTML | `index.html`, no framework | `*.html` files |
+| Django, Rails, Laravel, WordPress | recognised by name only | crawling the running site |
 
 ## Install
 
@@ -194,11 +216,11 @@ Findings are ranked **Blocker / Should-fix / Nice-to-have**. Each one has `file:
 | Area | Highlights |
 |---|---|
 | **Knowledge base** | Instructions files and `docs/` exist, and their claims (paths, routes, commands, host) still match the code |
-| **Launch content** | Placeholder and unconfirmed copy, create-next-app leftovers, favicon and OG image, 404/error pages, form consent, links back to the old site |
+| **Launch content** | Placeholder and unconfirmed copy, starter-template leftovers (create-next-app, Vite, Astro, SvelteKit, Nuxt…), favicon and OG image, 404/error pages, form consent, links back to the old site |
 | **Design** | Typography, spacing, motion, `prefers-reduced-motion`, touch targets, via your installed design skills |
 | **Code** | Correctness review of the diff against the base branch, then reuse/simplification |
-| **Security** | CSP covers every external host, no secrets in `NEXT_PUBLIC_*`, security headers, form endpoint hardening, server-only modules never imported by client components |
-| **SEO** | Per-route metadata, the OG/Twitter shallow-merge trap, sitemap/robots, staging `noindex` vs production indexable, JSON-LD, heading outline, alt text |
+| **Security** | CSP covers every external host, no secrets in public env vars (`NEXT_PUBLIC_*`, `PUBLIC_*`, `VITE_*`…), security headers, form endpoint hardening, server-only modules never imported by client components |
+| **SEO** | Per-route metadata (Next.js: the OG/Twitter shallow-merge trap), sitemap/robots, staging `noindex` vs production indexable, JSON-LD, heading outline, alt text |
 | **Analytics** | GA4 loads, consent mode default + update tested in a real browser, single `trackEvent()` wrapper, GA hosts in CSP, staging kept out of the production property |
 | **A11y & performance** | axe WCAG 2 A/AA on every route, contrast, keyboard and focus, reduced motion, Core Web Vitals, image and video weight |
 | **Browser** | Every route at 1440 and 375 px: console, network, CSP violations, hydration errors, screenshots, contact form end to end |
@@ -227,7 +249,7 @@ On hosts that can't stop for an approval (non-interactive or `exec` modes, CI), 
 |---|---|
 | A coding agent that loads Agent Skills and can run shell commands | Running the skill |
 | Python 3.9+ | The bundled scripts (stdlib only, nothing to install) |
-| A Next.js site with `git` (App Router for full coverage; monorepos supported) | Everything. Other frameworks get the framework-neutral steps: build gate, browser, a11y, release, smoke |
+| A site in one of the [supported stacks](#supported-stacks), in a `git` repo (monorepos supported) | Everything. Next.js App Router gets the deepest coverage; Django, Rails, Laravel and WordPress get the framework-neutral steps: build gate, browser, a11y, release, smoke |
 | [`gh`](https://cli.github.com/), authenticated | PRs and GitHub releases in `release` mode |
 | Playwright in the target repo | The test step (the skill can scaffold a suite in `fix` mode) |
 | A browser tool | Browser checks: a built-in browser pane, a browser MCP (Chrome DevTools or Playwright MCP), or a Playwright script as a fallback |
@@ -242,11 +264,11 @@ ship-site orchestrates other skills when they're installed (`code-review`, `simp
 Step 0 runs in every mode and needs no configuration. `scripts/detect.py` does it deterministically and offline. It detects:
 
 - the **package manager**, from `packageManager` or the lockfile, and stale lockfiles from another one
-- the **host**: AWS Amplify (`amplify.yml`), Vercel (`vercel.json` or `.vercel/`), Netlify (`netlify.toml`), or Cloudflare Workers via OpenNext (`wrangler.*`, `open-next.config.ts`)
+- the **host**: AWS Amplify (`amplify.yml`), Vercel (`vercel.json` or `.vercel/`), Netlify (`netlify.toml`), Cloudflare Workers via OpenNext (`wrangler.*`, `open-next.config.ts`), Firebase Hosting (`firebase.json`), Azure Static Web Apps (`staticwebapp.config.json`), Render (`render.yaml`), Fly.io (`fly.toml`) or GitHub Pages (a deploy workflow)
 - the **git host** (GitHub, Bitbucket, other), which decides how PRs and CI are checked
 - the **staging branch** (`dev`, `develop`, or `staging`; otherwise the default branch) and the diff against it
-- the **app inside a monorepo** (pnpm/npm/yarn workspaces, Turborepo, Nx): the workspace package that depends on `next`
-- every **route**, from `app/**/page.*` (route groups, private folders, parallel and intercepting routes handled) or `pages/`, with dynamic segments flagged for expansion
+- the **framework** (name, version, router, dev port, build output, public env prefix) and the **app inside a monorepo** (pnpm/npm/yarn workspaces, Turborepo, Nx): the workspace package that uses one of the supported frameworks
+- every **route**, from the framework's own convention (for Next.js, `app/**/page.*` with route groups, private folders, parallel and intercepting routes handled, or `pages/`), with dynamic segments flagged for expansion
 - the **gate scripts** (`ci`/`verify`/`check`, lint, format, typecheck, build, host build, `release:*`), and missing `not-found`, `error`, `sitemap` and `robots` files
 - whether the release **replaces a live site**, which adds URL, redirect and SEO-parity checks
 
@@ -268,10 +290,10 @@ All five scripts run without any agent, need nothing beyond Python 3.9, and are 
 
 | Script | What it does | Exit codes |
 |---|---|---|
-| `detect.py` | Repo facts: app location, package manager, host, branches, scripts, routes, URLs in docs | 0 Next app · 1 none · 2 bad input |
+| `detect.py` | Repo facts: app location, package manager, host, branches, scripts, routes, URLs in docs | 0 app found · 1 none · 2 bad input |
 | `smoke_test.py` | Post-deploy HTTP smoke test, including legacy-URL parity for a replatform | 0 pass · 1 failed · 2 unreachable |
-| `csp_hosts.py` | External hosts in source vs the CSP in `next.config.*` | 0 clean · 1 missing · 2 no CSP |
-| `launch_content.py` | Placeholder copy, create-next-app leftovers, links back to the old site | 0 clean · 1 findings |
+| `csp_hosts.py` | External hosts in source vs the CSP (`next.config.*`, host config, `_headers`, `<meta>`…) | 0 clean · 1 missing · 2 no CSP |
+| `launch_content.py` | Placeholder copy, starter-template leftovers, links back to the old site | 0 clean · 1 findings |
 | `build_report.py` | Merges findings and gates into `report.md`, `plan.md`, `findings.json` | 0 GO · 1 NO-GO/pending · 2 bad input |
 
 <details>
@@ -324,7 +346,7 @@ skills/ship-site/
   SKILL.md               the orchestrator: modes, hard rules, steps 0–12, rollback
   references/            checklists loaded only when a step needs them (launch-essentials, migration,
                          security, seo, analytics, a11y-perf, browser, release, rollback,
-                         hosting, playwright-scaffold, report-format)
+                         hosting, playwright-scaffold, report-format, frameworks)
   scripts/               detect, build_report, smoke_test, csp_hosts, launch_content
   evals/evals.json       prompts + assertions for skill-creator's eval loop
 tests/                   unit + end-to-end tests for the scripts
@@ -347,11 +369,11 @@ The tests run each script against local fixture repos and a throwaway HTTP serve
 
 ## Limitations
 
-- Next.js App Router conventions run through the SEO and security checklists. Pages Router or non-Next sites get partial coverage, and the skill says so up front.
-- Monorepos are supported when the Next.js app is a workspace package. With several Next apps, name the one to check.
+- Next.js App Router conventions are the deepest: the SEO and security checklists are written for them. Other stacks use the equivalents in `references/frameworks.md`, and Django, Rails, Laravel and WordPress get route discovery by crawling the running site. The skill says so up front.
+- Monorepos are supported when the app is a workspace package. With several apps, name the one to check.
 - `csp_hosts.py` is a static heuristic. Hosts built at runtime or fetched inside SDKs won't show up, so the browser console is the source of truth.
 - `launch_content.py` matches patterns, not meaning. Treat each hit as a candidate and confirm it on the rendered page.
-- Hosting guidance covers AWS Amplify, Vercel, Netlify and Cloudflare Workers (OpenNext). For any other host, the skill asks for your staging and production URLs and skips the host-specific checks.
+- Hosting guidance covers AWS Amplify, Vercel, Netlify, Cloudflare Workers (OpenNext), Firebase Hosting, Azure Static Web Apps, Render, Fly.io and GitHub Pages. For any other host, the skill asks for your staging and production URLs and skips the host-specific checks.
 - It can't fix anything that lives outside the repo, such as GA admin event rules, host console headers or DNS. It flags those for you instead.
 
 ## Support
