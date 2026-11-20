@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-20
+
 ### Added
 
 - `detect.py`: deterministic, offline step 0. Reports the app location (monorepo-aware: workspaces, `pnpm-workspace.yaml`, Turborepo, Nx), Next version and router, package manager and stale lockfiles, host, git host, base and production branches, gate/host-build/release scripts, routes (route groups, private folders, parallel and intercepting routes handled; dynamic segments flagged), missing `not-found`/`error`/`sitemap`/`robots`, staging and production URLs and replatform hints from the docs, and unfinished earlier runs. `--state` merges the facts into a run's `state.json`.
@@ -14,7 +16,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `--app <path>` for a Next.js app inside a monorepo; gates run through the workspace filter.
 - Evals for a scoped audit, quick mode, a production rollback and a monorepo pre-launch check.
 - `examples/sample-run/`: a complete audit run (findings and gates in, `report.md` and `plan.md` out), with screenshots of both in the README.
-- A pull request template.
+- A pull request template, and `tools/render_readme_shots.py` to regenerate the README screenshots.
 
 - `build_report.py`: merges each audit's findings JSON and `gates.json` into `report.md`, `plan.md` and `findings.json`. It dedupes findings raised by several audits, assigns IDs (`B1`, `S2`, `N3`, `K1`) that stay stable across re-runs, and computes the verdict (NO-GO, GO pending, or GO). With `--previous`, it reports new, resolved and still-open findings since an earlier run.
 - `plan.md`, the ordered route to GO: Blockers the agent can fix, Blockers waiting on the owner, recommended fixes, owner inputs to request, gates to re-run, release steps from `state.json` (approvals marked ⏸), and a post-launch backlog.
@@ -26,6 +28,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - `fix` mode works through `plan.md` in order and records each outcome in the findings JSON, then rebuilds the report with the same IDs.
 - `resume` reads the unticked items in `plan.md` as the remaining work.
+
+### Fixed
+
+- `build_report.py`: when several audits raise the same finding, the merged one keeps the fullest problem, fix and verify text and every audit's evidence. Before, the first file alphabetically won, so a browser audit's "see security" could replace the security audit's fix.
+- `SECURITY.md`, `CONTRIBUTING.md` and the issue forms cover every supported agent, mode and script.
 
 ## [1.1.0] - 2026-11-04
 
@@ -74,6 +81,7 @@ First public release.
 - Organization-specific hosts and component names in references and evals were replaced with generic examples.
 - `smoke_test.py` parses robots.txt by user-agent group, so a `Disallow: /` for another bot no longer reads as production being blocked.
 
-[Unreleased]: https://github.com/saroj-shahi/ship-site/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/saroj-shahi/ship-site/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/saroj-shahi/ship-site/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/saroj-shahi/ship-site/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/saroj-shahi/ship-site/releases/tag/v1.0.0

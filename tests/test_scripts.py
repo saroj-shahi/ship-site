@@ -239,6 +239,18 @@ class BuildReportCli(unittest.TestCase):
         self.assertIn("failed gate: playwright", "; ".join(out["reasons"]))
         self.assertIn("design", out["missing_areas"])
 
+    def test_merge_keeps_fuller_text_and_all_evidence(self):
+        self.write("findings/browser.json", {"area": "browser", "findings": [
+            {"severity": "blocker", "title": "CSP connect-src missing api.example.com", "file": "next.config.ts",
+             "line": 37, "fix": "See security.", "evidence": "console: Refused to connect"}]})
+        self.write("findings/security.json", {"area": "security", "findings": [
+            {"severity": "blocker", "title": "CSP connect-src missing api.example.com", "file": "next.config.ts",
+             "line": 37, "fix": "Append https://api.example.com to connect-src.", "evidence": "csp_hosts.py: missing"}]})
+        _, out = self.build()
+        b1 = next(f for f in out["findings"] if f["id"] == "B1")
+        self.assertEqual(b1["fix"], "Append https://api.example.com to connect-src.")
+        self.assertEqual(b1["evidence"], "console: Refused to connect; csp_hosts.py: missing")
+
     def test_report_and_plan_contents(self):
         self.build()
         report = (self.run_dir / "report.md").read_text()

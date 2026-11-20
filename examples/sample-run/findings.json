@@ -20,7 +20,7 @@
       "line": 41,
       "problem": "ContactForm posts to https://forms.example.com; the CSP blocks it and the form fails silently.",
       "fix": "Append https://forms.example.com to connect-src on line 41.",
-      "evidence": "screenshots/contact-375-submit.png; console: Refused to connect to 'https://forms.example.com' (connect-src)",
+      "evidence": "screenshots/contact-375-submit.png; console: Refused to connect to 'https://forms.example.com' (connect-src); csp_hosts.py: missing connect-src forms.example.com (src/lib/contact.ts:12); console: Refused to connect",
       "verify": "csp_hosts.py exits 0 and the form submits with no CSP error at 1440 and 375 px",
       "owner": "agent",
       "effort": "S",

@@ -132,9 +132,15 @@ def merge(raw: list[dict]) -> list[dict]:
             cur["sources"].append(f["area"])
         if SEVERITIES.index(f["severity"]) < SEVERITIES.index(cur["severity"]):
             cur["severity"] = f["severity"]
-        for k in ("problem", "fix", "evidence", "verify", "effort", "fix_evidence"):
-            if not cur.get(k) and f.get(k):
+        # Files are read alphabetically, so the first copy is often a terse cross-reference
+        # ("see security") from another audit: keep the fuller text, and every piece of evidence.
+        for k in ("problem", "fix", "verify", "fix_evidence"):
+            if len(str(f.get(k) or "")) > len(str(cur.get(k) or "")):
                 cur[k] = f[k]
+        if f.get("evidence") and f["evidence"] not in str(cur.get("evidence") or ""):
+            cur["evidence"] = f"{cur['evidence']}; {f['evidence']}" if cur.get("evidence") else f["evidence"]
+        if not cur.get("effort") and f.get("effort"):
+            cur["effort"] = f["effort"]
         cur["known_preexisting"] = cur.get("known_preexisting") and f.get("known_preexisting")
     out = list(merged.values())
     for f in out:

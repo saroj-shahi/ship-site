@@ -44,11 +44,12 @@ It replaces the release checklist people run by hand and get wrong at 6pm on a F
 ## What's new
 
 > [!TIP]
-> ### Unreleased · Quick checks, scoped audits and rollback
+> ### v1.2 · Quick checks, scoped audits, rollback and a launch plan
 > - **`/ship-site quick`**: repo detection, content and CSP scans and the build gate in a few minutes, before you push.
 > - **Scoped audits**: `/ship-site audit seo,security` runs only those areas. A slice can find a NO-GO but never claims a GO.
 > - **`/ship-site rollback`**: production broke after a release? It restores the last good build (host rollback or git revert), smoke-tests it, and makes sure the next deploy doesn't re-ship the bug.
 > - **`/ship-site status`** and **monorepo support** (`--app apps/web`), powered by the new `detect.py`.
+> - **`plan.md`**: every report now comes with an ordered launch plan that splits agent fixes from owner inputs. See the [sample run](examples/sample-run).
 
 - **v1.1 · Launch content and replatform checks.** Placeholder copy, the default favicon, legacy links, and every URL of the site you're replacing checked on the new one.
 - **v1.1 · Every agent.** Codex, Gemini CLI, Cursor, Copilot and OpenCode, plus checkpoints and `/ship-site resume` for releases cut off by a usage limit.
@@ -327,6 +328,7 @@ skills/ship-site/
   scripts/               detect, build_report, smoke_test, csp_hosts, launch_content
   evals/evals.json       prompts + assertions for skill-creator's eval loop
 tests/                   unit + end-to-end tests for the scripts
+tools/                   maintainer tools (re-render the README screenshots)
 ```
 
 `SKILL.md` stays short. The agent loads a reference file only when it reaches that step, which keeps the context cost low.

@@ -30,7 +30,7 @@ Commit: `4f2c9e1` on `feat/launch`
 - **Area:** Browser, Security
 - **Problem:** ContactForm posts to https://forms.example.com; the CSP blocks it and the form fails silently.
 - **Fix:** Append https://forms.example.com to connect-src on line 41.
-- **Evidence:** screenshots/contact-375-submit.png; console: Refused to connect to 'https://forms.example.com' (connect-src)
+- **Evidence:** screenshots/contact-375-submit.png; console: Refused to connect to 'https://forms.example.com' (connect-src); csp_hosts.py: missing connect-src forms.example.com (src/lib/contact.ts:12); console: Refused to connect
 
 ### B2. /work/[slug] drops og:image
 - **Where:** `src/app/work/[slug]/page.tsx:18`
