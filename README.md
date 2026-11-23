@@ -44,13 +44,13 @@ It replaces the release checklist people run by hand and get wrong at 6pm on a F
 ## What's new
 
 > [!TIP]
-> ### v1.2 · Quick checks, scoped audits, rollback and a launch plan
-> - **`/ship-site quick`**: repo detection, content and CSP scans and the build gate in a few minutes, before you push.
-> - **Scoped audits**: `/ship-site audit seo,security` runs only those areas. A slice can find a NO-GO but never claims a GO.
-> - **`/ship-site rollback`**: production broke after a release? It restores the last good build (host rollback or git revert), smoke-tests it, and makes sure the next deploy doesn't re-ship the bug.
-> - **`/ship-site status`** and **monorepo support** (`--app apps/web`), powered by the new `detect.py`.
-> - **`plan.md`**: every report now comes with an ordered launch plan that splits agent fixes from owner inputs. See the [sample run](examples/sample-run).
+> ### v1.3 · Beyond Next.js
+> - **Multi-stack support**: Astro, Nuxt, SvelteKit, Remix, React Router v7, Gatsby, Angular, Eleventy, Vite SPAs, Hugo, Jekyll and plain static HTML, each with its own routes, build gate, dev port and CSP location. See [Supported stacks](#supported-stacks).
+> - **More hosts**: Firebase Hosting, Azure Static Web Apps, Render, Fly.io and GitHub Pages, with rollback for Firebase and GitHub Pages.
+> - **Smarter scripts**: `csp_hosts.py` finds the CSP in host configs, `_headers` files and `<meta>` tags. `launch_content.py` flags starter leftovers for Vite, Astro, SvelteKit, Nuxt, Remix, CRA and Gatsby. `smoke_test.py` checks first-party assets for any framework.
+> - **Breaking**: `detect.py --json` now reports a `framework` object instead of `next`.
 
+- **v1.2 · Quick checks, scoped audits, rollback and a launch plan.** `/ship-site quick`, `audit seo,security`, `rollback`, `status`, monorepo support (`--app apps/web`), and a `plan.md` with every report. See the [sample run](examples/sample-run).
 - **v1.1 · Launch content and replatform checks.** Placeholder copy, the default favicon, legacy links, and every URL of the site you're replacing checked on the new one.
 - **v1.1 · Every agent.** Codex, Gemini CLI, Cursor, Copilot and OpenCode, plus checkpoints and `/ship-site resume` for releases cut off by a usage limit.
 
@@ -228,7 +228,7 @@ Findings are ranked **Blocker / Should-fix / Nice-to-have**. Each one has `file:
 | **Replatform** | Every URL of the old site reaches a 200 on the new one, titles and descriptions carried over, no hotlinks to the old host |
 | **Release** | Conventional commits → staging → version bump → release PR → tag + GitHub release |
 | **Smoke test** | Live status codes, `og:image` that resolves, robots per environment, canonical host, real 404s, http→https, static assets, CSP and security headers, proof the new build is live |
-| **Rollback** | Host rollback (Vercel, Netlify, Amplify, Cloudflare) or git revert, a production smoke test afterwards, and git re-synced so the next deploy doesn't undo it |
+| **Rollback** | Host rollback (Vercel, Netlify, Amplify, Cloudflare, Firebase Hosting, GitHub Pages) or git revert, a production smoke test afterwards, and git re-synced so the next deploy doesn't undo it |
 
 ## Safety model
 
@@ -290,7 +290,7 @@ All five scripts run without any agent, need nothing beyond Python 3.9, and are 
 
 | Script | What it does | Exit codes |
 |---|---|---|
-| `detect.py` | Repo facts: app location, package manager, host, branches, scripts, routes, URLs in docs | 0 app found · 1 none · 2 bad input |
+| `detect.py` | Repo facts: framework, app location, package manager, host, branches, scripts, routes, URLs in docs | 0 app found · 1 none · 2 bad input |
 | `smoke_test.py` | Post-deploy HTTP smoke test, including legacy-URL parity for a replatform | 0 pass · 1 failed · 2 unreachable |
 | `csp_hosts.py` | External hosts in source vs the CSP (`next.config.*`, host config, `_headers`, `<meta>`…) | 0 clean · 1 missing · 2 no CSP |
 | `launch_content.py` | Placeholder copy, starter-template leftovers, links back to the old site | 0 clean · 1 findings |
@@ -365,7 +365,7 @@ python3 -m unittest discover -s tests -v
 claude plugin validate . --strict
 ```
 
-The tests run each script against local fixture repos and a throwaway HTTP server, so they need no network access. CI runs them on every push. To measure the skill itself, run the prompts in [`evals/evals.json`](skills/ship-site/evals/evals.json) through the `skill-creator` eval loop against a real Next.js repo and compare with a no-skill baseline. Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+The tests run each script against local fixture repos and a throwaway HTTP server, so they need no network access. CI runs them on every push. To measure the skill itself, run the prompts in [`evals/evals.json`](skills/ship-site/evals/evals.json) through the `skill-creator` eval loop against a real site repo (Next.js, Astro or Hugo, to match the prompt) and compare with a no-skill baseline. Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Limitations
 
