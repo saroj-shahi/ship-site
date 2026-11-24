@@ -690,6 +690,15 @@ class Installer(unittest.TestCase):
         self.assertTrue((dest / "SKILL.md").is_file())
         self.assertTrue((dest / "scripts" / "smoke_test.py").is_file())
 
+    def test_antigravity_user_and_project_folders(self):
+        res = self.install("--agent", "antigravity")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertTrue((self.home / ".gemini" / "config" / "skills" / "ship-site").is_symlink())
+        proj = Path(self.tmp.name) / "site"
+        proj.mkdir()
+        self.install("--project", str(proj), "--agent", "antigravity")
+        self.assertTrue((proj / ".agents" / "skills" / "ship-site").is_symlink())
+
     def test_foreign_folder_left_alone_without_force(self):
         dest = self.home / ".gemini" / "skills" / "ship-site"
         dest.mkdir(parents=True)

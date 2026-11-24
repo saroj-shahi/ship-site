@@ -11,6 +11,7 @@ loads skills can run it. Agents look in different folders:
   cursor    ~/.cursor/skills              .cursor/skills
   copilot   ~/.copilot/skills             .github/skills
   opencode  ~/.config/opencode/skills     .opencode/skills
+  antigravity ~/.gemini/config/skills     .agents/skills
   claude    ~/.claude/skills              .claude/skills      (or use the Claude Code plugin)
 
 With no --agent, installs to the shared `agents` folder only. One copy there
@@ -20,6 +21,7 @@ the skill twice.
 Usage:
   python3 install.py                          # ~/.agents/skills/ship-site -> this repo
   python3 install.py --agent gemini --agent cursor
+  python3 install.py --agent antigravity
   python3 install.py --project ../my-site --agent copilot --copy
   python3 install.py --uninstall --agent all
 Links by default (updates with `git pull`); --copy for a standalone copy (default on Windows).
@@ -41,9 +43,11 @@ USER_DIRS = {
     "cursor": ".cursor/skills",
     "copilot": ".copilot/skills",
     "opencode": ".config/opencode/skills",
+    "antigravity": ".gemini/config/skills",
     "claude": ".claude/skills",
 }
-PROJECT_DIRS = {**USER_DIRS, "copilot": ".github/skills", "opencode": ".opencode/skills"}
+PROJECT_DIRS = {**USER_DIRS, "copilot": ".github/skills", "opencode": ".opencode/skills",
+                "antigravity": ".agents/skills"}
 # Folders each agent is documented to read besides its own. Used only to warn about duplicates.
 ALSO_READS = {
     "gemini": ["agents"], "cursor": ["agents"], "copilot": ["agents", "claude"],
@@ -135,7 +139,7 @@ def main() -> int:
             continue
         done.add(dest)
         status = uninstall(dest, a.force, a.dry_run) if a.uninstall else install(dest, a.copy, a.force, a.dry_run)
-        print(f"{agent:<9} {dest}  {status}")
+        print(f"{agent:<11} {dest}  {status}")
 
     for w in duplicate_warnings(project):
         print(f"warning: {w}")

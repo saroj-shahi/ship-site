@@ -95,7 +95,7 @@ Install this skill for me: https://github.com/saroj-shahi/ship-site
 
 Update later with `/plugin update ship-site`.
 
-**Codex, Gemini CLI, Cursor, Copilot, OpenCode and others**: with the [`skills`](https://github.com/vercel-labs/skills) CLI,
+**Codex, Gemini CLI, Cursor, Copilot, OpenCode, Antigravity and others**: with the [`skills`](https://github.com/vercel-labs/skills) CLI,
 
 ```bash
 npx skills add saroj-shahi/ship-site
@@ -132,9 +132,10 @@ python3 ship-site/install.py --project path/to/site --agent copilot --copy
 | Cursor | `cursor` | `~/.cursor/skills` | `.cursor/skills` |
 | GitHub Copilot | `copilot` | `~/.copilot/skills` | `.github/skills` |
 | OpenCode | `opencode` | `~/.config/opencode/skills` | `.opencode/skills` |
+| Antigravity | `antigravity` | `~/.gemini/config/skills` | `.agents/skills` |
 | Claude Code | `claude` | `~/.claude/skills` | `.claude/skills` |
 
-The installer symlinks by default, so `git pull` updates the skill. It copies instead on Windows or with `--copy`. It never overwrites a folder it didn't create unless you pass `--force`, and `--uninstall` removes only its own links. Older Codex builds read `~/.codex/skills`; if yours does, link the skill there by hand. If the skill doesn't show up, check your agent's docs for its skills path, or whether skills need enabling in its settings.
+The installer symlinks by default, so `git pull` updates the skill. It copies instead on Windows or with `--copy`. It never overwrites a folder it didn't create unless you pass `--force`, and `--uninstall` removes only its own links. Older Codex builds read `~/.codex/skills`; if yours does, link the skill there by hand. Antigravity doesn't read the shared `~/.agents/skills` folder globally, so use `--agent antigravity` (older Antigravity builds read `~/.gemini/antigravity/skills` instead). If the skill doesn't show up, check your agent's docs for its skills path, or whether skills need enabling in its settings.
 
 **Agents without skill support:** point the agent's instructions file (`AGENTS.md`, `.windsurfrules`, `CONVENTIONS.md`…) at it: *"For release-readiness, pre-launch checks, releases and smoke tests, read and follow `<path>/skills/ship-site/SKILL.md`."*
 

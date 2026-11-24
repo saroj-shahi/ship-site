@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `install.py --agent antigravity`: installs for Google Antigravity (`~/.gemini/config/skills`, or `.agents/skills` with `--project`).
+
 ## [1.3.0] - 2026-11-20
 
 ### Added
